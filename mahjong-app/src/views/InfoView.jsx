@@ -173,7 +173,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
             <Clock className="w-4 h-4" /> 5/30 (六) 20:00
           </p>
           <p className="text-slate-400 leading-relaxed font-medium">
-            初賽採用 <strong className="text-slate-100">東風場</strong>，速戰速決。每位選手須完成 3 局，總點數排名前 <strong className="text-orange-400 text-lg">16 強</strong> 晉級。
+            初賽採用 <strong className="text-slate-100">東風戰</strong>，速戰速決。每位選手須完成 3 局，總點數排名前 <strong className="text-orange-400 text-lg">16 強</strong> 晉級。
           </p>
         </div>
 
