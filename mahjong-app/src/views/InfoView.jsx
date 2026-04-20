@@ -173,7 +173,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
             <Clock className="w-4 h-4" /> 5/30 (六) 20:00
           </p>
           <p className="text-slate-400 leading-relaxed font-medium">
-            初賽採用 <strong className="text-slate-100">東風戰</strong>，速戰速決。每位選手須完成 3 局，總點數排名前 <strong className="text-orange-400 text-lg">16 強</strong> 晉級。
+            初賽採用 <strong className="text-slate-100">東風戰(帶食斷)</strong>，速戰速決。每位選手須完成 3 局，總點數排名前 <strong className="text-orange-400 text-lg">16 強</strong> 晉級。
           </p>
         </div>
 
@@ -189,7 +189,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
             <Clock className="w-4 h-4" /> 5/31 (日) 20:00
           </p>
           <p className="text-slate-400 leading-relaxed font-medium">
-            複賽改為 <strong className="text-slate-100">半莊戰</strong>。4 桌分組廝殺，僅有 <strong className="text-amber-400 text-lg">該桌第 1 名</strong> 能獲得決賽門票。
+            複賽改為 <strong className="text-slate-100">半莊戰(帶食斷)</strong>。4 桌分組廝殺，僅有 <strong className="text-amber-400 text-lg">該桌第 1 名</strong> 能獲得決賽門票。
           </p>
         </div>
 
@@ -205,7 +205,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
             <Clock className="w-4 h-4" /> 5/31 (日) 緊接複賽後
           </p>
           <p className="text-slate-400 leading-relaxed font-medium">
-            最後 4 人同桌進行頂尖 <strong className="text-slate-100">半莊對決</strong>。總結算最高分者，正式加冕為<strong className="text-yellow-400 text-lg uppercase ml-1">初代多瑪雀王</strong>！
+            最後 4 人同桌進行頂尖 <strong className="text-slate-100">半莊戰(帶食斷)</strong>。總結算最高分者，正式加冕為<strong className="text-yellow-400 text-lg uppercase ml-1">初代多瑪雀王</strong>！
           </p>
         </div>
       </div>
@@ -222,8 +222,8 @@ export default function InfoView({ setActiveStep, currentUser }) {
             </div>
             <p className="text-slate-300 text-lg leading-relaxed max-w-3xl">
               所有對局起步皆為 <strong className="text-white">25,000</strong> 點。
-              初賽採取效率導向的 <strong className="text-orange-400">東風戰</strong>；
-              複賽與決賽則改為競技導向的 <strong className="text-amber-400">半莊戰</strong>。
+              初賽採取效率導向的 <strong className="text-orange-400">東風戰(帶食斷)</strong>；
+              複賽與決賽則改為競技導向的 <strong className="text-amber-400">半莊戰(帶食斷)</strong>。
               成績登記將以結算畫面上的「真實剩餘點數」為準。
             </p>
           </div>
