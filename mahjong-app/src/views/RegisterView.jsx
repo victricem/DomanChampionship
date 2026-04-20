@@ -190,18 +190,26 @@ export default function RegisterView({
             )}
           </div>
           
-          <div className="mt-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-slate-800/50 pt-6">
-            <button 
-              onClick={() => setShowResetConfirm(true)} // 👉 修改這裡：點擊後改為開啟彈出層
-              className="w-full md:w-auto text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 font-bold py-2.5 px-5 rounded-xl transition-colors flex items-center justify-center text-sm"
-              title="刪除所有報名資料與賽程"
-            >
-              <AlertTriangle className="w-4 h-4 mr-2" /> 清空資料 (舉辦下屆賽事)
-            </button>
+          {/* 👉 修改這裡：全新的底部按鈕佈局與 Danger Zone */}
+          <div className="mt-8 flex flex-col md:flex-row justify-between items-end gap-6 border-t border-slate-800/50 pt-6">
+            
+            {/* ⚠️ 危險操作區塊 (Danger Zone) */}
+            <div className="w-full md:w-auto flex flex-col items-start gap-2">
+              <span className="text-[10px] text-red-500/70 font-black tracking-widest uppercase ml-2 flex items-center gap-1">
+                <ShieldAlert className="w-3 h-3" /> Danger Zone
+              </span>
+              <button 
+                onClick={() => setShowResetConfirm(true)}
+                className="w-full md:w-auto group relative flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-bold text-red-400 bg-red-950/30 border border-red-900/50 hover:border-red-500 hover:bg-red-600 hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(220,38,38,0.1)] hover:shadow-[0_0_20px_rgba(220,38,38,0.4)]"
+                title="刪除所有報名資料與賽程"
+              >
+                <AlertTriangle className="w-4 h-4 mr-2 group-hover:animate-pulse" /> 清空所有賽事資料
+              </button>
+            </div>
             
             <button 
               onClick={() => { if (players.filter(p => p.status === 'active').length < 4) { alert('至少需要 4 名已核准的參賽者！'); return; } setActiveStep('matchmaking'); }} 
-              className="w-full md:w-auto bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center"
+              className="w-full md:w-auto bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center"
             >
               前往賽程配對 <ChevronRight className="ml-1 w-5 h-5" />
             </button>
@@ -209,7 +217,7 @@ export default function RegisterView({
         </div>
       )}
 
-      {/* 🌟 新增：專屬原生網頁對話框 (Custom Modal) */}
+      {/* 🌟 專屬原生網頁對話框 (Custom Modal) */}
       {showResetConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
           {/* 背景模糊遮罩 */}
