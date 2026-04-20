@@ -13,11 +13,7 @@ export function useTournament() {
   const [activeStep, setActiveStep] = useState('info');
   const [currentUser, setCurrentUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  
-  // 提示訊息狀態
   const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
-  
-  // 🌟 [新增] 全域確認對話框狀態
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null });
 
   const showToast = (message, type = 'error') => {
@@ -25,7 +21,6 @@ export function useTournament() {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   };
 
-  // 🌟 [新增] 呼叫確認對話框的專用函式
   const requestConfirm = (title, message, action) => {
     setConfirmModal({ isOpen: true, title, message, action });
   };
@@ -121,6 +116,22 @@ export function useTournament() {
     return isExist;
   };
 
+  // 🌟 [優化] 更明確的錯誤捕捉，避免程式卡死並能準確回報權限問題
+  const updateGlobalTournament = async (newData) => {
+    try {
+      await setDoc(doc(db, 'tournament', 'global'), newData, { merge: true });
+      return true; // 回傳成功狀態
+    } catch (err) { 
+      console.error("Firebase Update Error:", err);
+      if (err.code === 'permission-denied') {
+        showToast("操作失敗：權限不足！請確認 Firebase 規則已開放", "error");
+      } else {
+        showToast("雲端更新失敗，請檢查網路狀態！", "error"); 
+      }
+      return false;
+    }
+  };
+
   // --- 使用者操作函式 ---
 
   const handleQuickSetName = async (name) => {
@@ -161,12 +172,6 @@ export function useTournament() {
     setActiveStep('info');
   });
 
-  const updateGlobalTournament = async (newData) => {
-    try {
-      await setDoc(doc(db, 'tournament', 'global'), newData, { merge: true });
-    } catch (err) { showToast("同步至雲端失敗！", "error"); }
-  };
-
   const handleAddPlayer = async (e) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return;
@@ -186,7 +191,6 @@ export function useTournament() {
     } catch (error) { showToast("核准失敗！", "error"); }
   };
 
-  // 🌟 [修改] 移除 window.confirm
   const handleDeletePlayer = (id) => {
     requestConfirm('移除參賽者', '確定要移除該名使用者嗎？此動作將無法復原。', async () => {
       try {
@@ -196,6 +200,7 @@ export function useTournament() {
     });
   };
 
+  // 賽程分數編輯
   const handleTableScoreChange = (rIdx, tIdx, pIdx, value) => {
     if (!/^-?\d*$/.test(value)) return;
     const newSchedule = JSON.parse(JSON.stringify(schedule));
@@ -203,20 +208,27 @@ export function useTournament() {
     setSchedule(newSchedule); 
   };
 
+  // 🌟 [防呆升級] 發起成績審核
   const handleProposeScore = async (rIdx, tIdx) => {
     const newSchedule = JSON.parse(JSON.stringify(schedule));
     const table = newSchedule[rIdx].tables[tIdx];
-    if (table.scores.some(s => s.points === '' || s.points === '-')) {
-      showToast("請填寫完整分數！", "error"); return;
+    
+    // 嚴格檢查：不能為空、不能只有負號、必須是數字
+    if (table.scores.some(s => s.points === '' || s.points === '-' || isNaN(Number(s.points)))) {
+      showToast("請填寫所有玩家的有效數字分數！", "error"); 
+      return;
     }
+    
     const me = players.find(p => p.uid === currentUser?.uid);
     table.status = 'pending';
     table.approvals = me ? [me.id] : ['admin'];
     table.proposer = me ? me.name : '管理員';
-    await updateGlobalTournament({ schedule: newSchedule });
-    showToast("已發起審核！", "success");
+    
+    const success = await updateGlobalTournament({ schedule: newSchedule });
+    if (success) showToast("已發起審核，等待同桌確認！", "success");
   };
 
+  // 核准/結算成績
   const handleApproveScore = async (rIdx, tIdx) => {
     const newSchedule = JSON.parse(JSON.stringify(schedule));
     const table = newSchedule[rIdx].tables[tIdx];
@@ -250,26 +262,26 @@ export function useTournament() {
           details: table.players.map((p, i) => ({ player: p.name, pointsChange: Number(table.scores[i].points) }))
         };
 
-        await updateGlobalTournament({ schedule: newSchedule, matches: [matchRecord, ...matches] });
-        showToast("成績已正式結算！", "success");
-      } catch (err) { showToast("結算失敗！", "error"); }
+        const success = await updateGlobalTournament({ schedule: newSchedule, matches: [matchRecord, ...matches] });
+        if (success) showToast(isAdmin ? "管理員已強制結算！" : "全員確認完畢，成績已送出！", "success");
+      } catch (err) { showToast("結算資料庫失敗，請確認網路！", "error"); }
     } else {
-      await updateGlobalTournament({ schedule: newSchedule });
-      showToast("已確認，等待其他人...", "success");
+      const success = await updateGlobalTournament({ schedule: newSchedule });
+      if (success) showToast("您已同意，等待同桌其他人確認...", "success");
     }
   };
 
+  // 退回成績
   const handleRejectScore = async (rIdx, tIdx) => {
     const newSchedule = JSON.parse(JSON.stringify(schedule));
     newSchedule[rIdx].tables[tIdx].status = 'playing';
     newSchedule[rIdx].tables[tIdx].approvals = [];
-    await updateGlobalTournament({ schedule: newSchedule });
-    showToast("已退回修改！", "error");
+    const success = await updateGlobalTournament({ schedule: newSchedule });
+    if (success) showToast("已退回修改狀態！", "error");
   };
 
-  // 🌟 [修改] 移除 window.confirm
   const handleUndoSpecificMatch = (matchId) => {
-    requestConfirm('撤銷成績', '確定要撤銷這筆積分嗎？選手的積分將會回溯，且退回為編輯狀態。', async () => {
+    requestConfirm('撤銷成績', '確定要撤銷這筆積分嗎？選手的積分將會回溯，且該桌將退回編輯狀態。', async () => {
       const match = matches.find(m => m.id === matchId);
       if (!match) return;
       try {
@@ -312,7 +324,6 @@ export function useTournament() {
     showToast("賽程已發布！", "success");
   };
 
-  // 🌟 [修改] 移除 window.confirm
   const handleGenerateBracket = (auto = false) => {
     const sorted = sortedPlayers.filter(p => p.status === 'active');
     
