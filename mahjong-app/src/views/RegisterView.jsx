@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  UserPlus, Plus, Cat, AlertCircle, CheckCircle2, Check, Trash2, 
-  ChevronRight, ShieldAlert, Edit2, Save, X, Search, 
-  AlertTriangle, AlertOctagon, UserCheck 
-} from 'lucide-react';
+import { UserPlus, Plus, Cat, AlertCircle, CheckCircle2, Check, Trash2, ChevronRight, ShieldAlert, Edit2, Save, X, Search, AlertTriangle, AlertOctagon, UserCheck } from 'lucide-react';
 
 export default function RegisterView({ 
   players, currentUser, isAdmin, handleSelfRegister, newPlayerName, setNewPlayerName, 
@@ -14,18 +10,14 @@ export default function RegisterView({
   const [isEditing, setIsEditing] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // resetStep 狀態：0=關閉, 1=第一層警告, 2=第二層終極確認
   const [resetStep, setResetStep] = useState(0);
   
   const myRegistration = players.find(p => p.uid === currentUser?.uid);
   
-  // 🌟 判定邏輯：是否已經「正式報名」 (狀態不是 visitor 才算報名)
+  // 判定是否已經「正式報名」 (狀態不是 visitor 才算報名)
   const isFullyRegistered = myRegistration && myRegistration.status !== 'visitor';
-  // 🌟 判定邏輯：是否僅設定了暱稱 (訪客)
   const isVisitorOnly = myRegistration && myRegistration.status === 'visitor';
 
-  // 自動帶入名稱：如果有 myRegistration 就用裡面的，沒有就用 Google 名稱
   useEffect(() => {
     if (myRegistration) {
       setCharacterName(myRegistration.name);
@@ -46,7 +38,6 @@ export default function RegisterView({
     setIsEditing(false);
   };
 
-  // 🌟 過濾掉「訪客」狀態的人，管理員名單只顯示正式報名的人
   const filteredPlayers = players
     .filter(p => p.status !== 'visitor')
     .filter(player => player.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -75,12 +66,13 @@ export default function RegisterView({
 
         {!isFullyRegistered ? (
           <div className="space-y-4">
+            {/* 🌟 修正文案：拿掉「可以先設定」的錯誤引導，明確告知是正式報名 */}
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
               <p className="text-blue-100/80 text-sm leading-relaxed">
                 {isVisitorOnly 
-                  ? `您好 ${myRegistration.name}，您已設定角色暱稱。若要參加第一屆多瑪雀王爭霸戰，請點擊下方按鈕正式提交報名。` 
-                  : "設定暱稱後，右上角將顯示您的角色 ID。您可以先設定暱稱，決定好要參賽後再正式提交報名。"}
+                  ? `您好 ${myRegistration.name}，您目前僅設定了右上角的顯示暱稱。若要參加本屆賽事，請點擊下方按鈕正式提交報名。` 
+                  : "請輸入您的遊戲角色名稱，點擊「正式提交報名」後將進入資格審核流程。"}
               </p>
             </div>
 
@@ -94,7 +86,7 @@ export default function RegisterView({
                 className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-orange-500 font-medium" 
               />
               <button type="submit" className="bg-orange-600 hover:bg-orange-500 text-white font-bold px-8 py-3 rounded-xl transition-colors flex items-center justify-center shadow-md">
-                <UserCheck className="w-5 h-5 mr-1" /> {isVisitorOnly ? '正式提交報名' : '設定暱稱並報名'}
+                <UserCheck className="w-5 h-5 mr-2" /> 正式提交報名
               </button>
             </form>
           </div>

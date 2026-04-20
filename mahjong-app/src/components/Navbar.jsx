@@ -1,22 +1,35 @@
-import React from 'react';
-import { Crown, Edit2 } from 'lucide-react'; // 引入 Edit2 圖示
+import React, { useState } from 'react';
+import { Crown, Edit2, Check, X } from 'lucide-react';
 
-export default function Navbar({ currentUser, handleLogout, players, setActiveStep }) {
+export default function Navbar({ 
+  currentUser, handleLogout, players, setActiveStep, handleQuickSetName, handleUpdatePlayerName 
+}) {
   const myRegistration = players?.find(p => p.uid === currentUser?.uid);
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempName, setTempName] = useState('');
+
+  const handleSave = async () => {
+    if (tempName.trim()) {
+      if (myRegistration) {
+        // 已有資料，執行更新
+        await handleUpdatePlayerName(tempName);
+      } else {
+        // 尚未有資料，設定為訪客暱稱
+        await handleQuickSetName(tempName);
+      }
+      setIsEditing(false);
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-[#0A0F1C]/90 backdrop-blur-xl border-b border-slate-800 shadow-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
-          {/* 左側 Logo 區 */}
+          {/* 左側 Logo */}
           <div className="flex items-center gap-4">
-            {/* 🌟 修正處：將兩次 className 合併為一個 */}
-            <div 
-              className="relative cursor-pointer" 
-              onClick={() => setActiveStep('info')}
-            >
-              <div className="absolute -inset-1 bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl blur opacity-25"></div>
+            <div className="relative cursor-pointer group" onClick={() => setActiveStep('info')}>
+              <div className="absolute -inset-1 bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-opacity"></div>
               <div className="relative bg-slate-900 p-2.5 rounded-2xl border border-slate-700">
                 <Crown className="w-8 h-8 text-orange-500" />
               </div>
@@ -29,30 +42,49 @@ export default function Navbar({ currentUser, handleLogout, players, setActiveSt
             </div>
           </div>
           
-          {/* 右側：登入資訊區 */}
+          {/* 右側：登入資訊與修改入口 */}
           {currentUser && (
             <div className="flex items-center gap-3 bg-slate-900/60 px-5 py-2 rounded-full border border-slate-800 shadow-sm">
               
-              {/* 🌟 讓整個名稱區塊都變成可點擊跳轉到報名頁面 */}
-              <button 
-                onClick={() => setActiveStep('register')}
-                className="group flex items-center gap-2 text-sm font-bold tracking-wide transition-all"
-              >
-                {myRegistration ? (
-                  // 已報名：顯示名字 + 小筆圖示
-                  <div className="flex items-center gap-2 text-slate-200 group-hover:text-orange-400">
-                    <span className="truncate max-w-[120px] md:max-w-[180px]">{myRegistration.name}</span>
-                    <Edit2 className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
-                  </div>
-                ) : (
-                  // 未報名：原本的閃爍提示
-                  <span className="text-orange-500 animate-pulse group-hover:text-orange-400">
-                    請輸入角色ID報名
-                  </span>
-                )}
-              </button>
+              {isEditing ? (
+                /* 🌟 編輯模式：輸入框 */
+                <div className="flex items-center gap-2">
+                  <input 
+                    autoFocus
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                    placeholder="輸入角色名稱..."
+                    className="bg-slate-800 border border-orange-500/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none w-36 shadow-inner"
+                  />
+                  <button onClick={handleSave} className="text-emerald-500 hover:text-emerald-400 p-1"><Check className="w-4 h-4"/></button>
+                  <button onClick={() => setIsEditing(false)} className="text-slate-500 hover:text-slate-300 p-1"><X className="w-4 h-4"/></button>
+                </div>
+              ) : (
+                /* 🌟 顯示模式：點擊進入編輯 */
+                <button 
+                  onClick={() => {
+                    setIsEditing(true);
+                    setTempName(myRegistration?.name || currentUser.displayName || '');
+                  }}
+                  className="group flex items-center gap-2 text-sm font-bold tracking-wide transition-all"
+                  title="點擊修改角色名稱"
+                >
+                  {myRegistration ? (
+                    <div className="flex items-center gap-2 text-slate-200 group-hover:text-orange-400 transition-colors">
+                      <span className="truncate max-w-[120px] md:max-w-[180px]">{myRegistration.name}</span>
+                      <Edit2 className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+                    </div>
+                  ) : (
+                    <span className="text-orange-500 animate-pulse group-hover:text-orange-400 transition-colors">
+                      請輸入角色ID報名
+                    </span>
+                  )}
+                </button>
+              )}
               
-              <div className="w-px h-4 bg-slate-700 mx-1"></div>
+              <div className="w-px h-4 bg-slate-700 mx-2"></div>
               
               <button 
                 onClick={handleLogout} 
