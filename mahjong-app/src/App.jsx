@@ -2,7 +2,7 @@ import React from 'react';
 import { useTournament } from './hooks/useTournament';
 import Navbar from './components/Navbar';
 import NavigationTabs from './components/NavigationTabs';
-import Footer from './components/Footer'; // 👉 引入 Footer
+import Footer from './components/Footer';
 import InfoView from './views/InfoView';
 import RegisterView from './views/RegisterView';
 import MatchmakingView from './views/MatchmakingView';
@@ -15,10 +15,8 @@ export default function App() {
   const { toast, currentUser, players, isAdmin } = tournamentState;
 
   const isRegistered = players.some(p => p.uid === currentUser?.uid);
-  const isLandingPage = tournamentState.activeStep === 'info';
 
   return (
-    // 加入 flex-col 和 min-h-screen 確保 Footer 佈局正確
     <div className="flex flex-col min-h-screen bg-[#0A0F1C] text-slate-200 font-sans selection:bg-orange-500/30 relative">
       
       {/* 全域 Toast */}
@@ -33,14 +31,14 @@ export default function App() {
         </div>
       )}
 
+      {/* 🌟 修改這裡：傳入 setActiveStep */}
       <Navbar 
         currentUser={currentUser} 
         handleLogout={tournamentState.handleLogout} 
         players={players}
-        isRegistered={isRegistered}
+        setActiveStep={tournamentState.setActiveStep}
       />
       
-      {/* 內容區塊加上 flex-grow */}
       <div className="flex-grow pt-4 px-4 md:px-8 max-w-7xl mx-auto w-full">
         
         <NavigationTabs 
@@ -63,7 +61,6 @@ export default function App() {
         {tournamentState.activeStep === 'bracket' && <BracketView {...tournamentState} />}
       </div>
 
-      {/* 👉 將 Footer 放在這裡，位於所有頁面內容的最下方 */}
       <Footer />
     </div>
   );

@@ -1,8 +1,7 @@
 import React from 'react';
-import { Crown } from 'lucide-react';
+import { Crown, Edit2 } from 'lucide-react'; // 引入 Edit2 圖示
 
-export default function Navbar({ currentUser, handleLogout, players }) {
-  // 從 players 陣列中找出目前登入者的資料
+export default function Navbar({ currentUser, handleLogout, players, setActiveStep }) {
   const myRegistration = players?.find(p => p.uid === currentUser?.uid);
 
   return (
@@ -12,7 +11,11 @@ export default function Navbar({ currentUser, handleLogout, players }) {
           
           {/* 左側 Logo 區 */}
           <div className="flex items-center gap-4">
-            <div className="relative">
+            {/* 🌟 修正處：將兩次 className 合併為一個 */}
+            <div 
+              className="relative cursor-pointer" 
+              onClick={() => setActiveStep('info')}
+            >
               <div className="absolute -inset-1 bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl blur opacity-25"></div>
               <div className="relative bg-slate-900 p-2.5 rounded-2xl border border-slate-700">
                 <Crown className="w-8 h-8 text-orange-500" />
@@ -30,25 +33,27 @@ export default function Navbar({ currentUser, handleLogout, players }) {
           {currentUser && (
             <div className="flex items-center gap-3 bg-slate-900/60 px-5 py-2 rounded-full border border-slate-800 shadow-sm">
               
-              {/* 🌟 角色名稱 / 報名提示區 */}
-              <div className="text-sm font-bold tracking-wide truncate max-w-[150px] md:max-w-[200px]">
+              {/* 🌟 讓整個名稱區塊都變成可點擊跳轉到報名頁面 */}
+              <button 
+                onClick={() => setActiveStep('register')}
+                className="group flex items-center gap-2 text-sm font-bold tracking-wide transition-all"
+              >
                 {myRegistration ? (
-                  // 1. 如果已報名：顯示角色名稱
-                  <span className="text-slate-200">
-                    {myRegistration.name}
-                  </span>
+                  // 已報名：顯示名字 + 小筆圖示
+                  <div className="flex items-center gap-2 text-slate-200 group-hover:text-orange-400">
+                    <span className="truncate max-w-[120px] md:max-w-[180px]">{myRegistration.name}</span>
+                    <Edit2 className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100" />
+                  </div>
                 ) : (
-                  // 2. 如果未報名：顯示橘色閃爍提示
-                  <span className="text-orange-500 animate-pulse">
+                  // 未報名：原本的閃爍提示
+                  <span className="text-orange-500 animate-pulse group-hover:text-orange-400">
                     請輸入角色ID報名
                   </span>
                 )}
-              </div>
+              </button>
               
-              {/* 分隔線 */}
               <div className="w-px h-4 bg-slate-700 mx-1"></div>
               
-              {/* 登出按鈕 */}
               <button 
                 onClick={handleLogout} 
                 className="text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
@@ -57,7 +62,6 @@ export default function Navbar({ currentUser, handleLogout, players }) {
               </button>
             </div>
           )}
-
         </div>
       </div>
     </nav>
