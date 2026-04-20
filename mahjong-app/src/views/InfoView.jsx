@@ -95,7 +95,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
                 <Calendar className="w-6 h-6 text-orange-400" />
               </div>
               <div className="text-left">
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-tighter mb-1">Day 1 初賽 (東風場)</p>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-tighter mb-1">Day 1 初賽 (東風戰)</p>
                 <p className="text-white text-xl font-black italic">5/30 <span className="text-sm not-italic font-bold text-slate-300">(六)</span> 20:00</p>
               </div>
             </div>
