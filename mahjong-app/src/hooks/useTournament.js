@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { auth, db } from '../firebase';
-// 🌟 核心修復：引入 setPersistence 與 browserLocalPersistence 確保登入狀態不遺失
+// 🌟 引入關鍵函式：getRedirectResult (處理回傳), setPersistence (持久化狀態)
 import { 
   onAuthStateChanged, 
   signOut, 
@@ -55,11 +55,12 @@ export function useTournament() {
 
       if (user) {
         try {
-          // 管理員 Email 清單 (建議全部小寫)
+          // 管理員 Email 清單 (統一小寫判斷)
           const adminEmails = ['tony80709@yahoo.com.tw', 's85543s2169@gmail.com'];
           const userEmail = user.email ? user.email.toLowerCase() : '';
 
           // 嘗試讀取 adminCheck 文件 (用來觸發 Firestore Rules 檢查)
+          // 根據規則，一般玩家會在這裡 throw error，進而進入 catch 區塊設定 isAdmin(false)
           await getDoc(doc(db, 'settings', 'adminCheck'));
 
           if (adminEmails.includes(userEmail)) {
@@ -310,7 +311,7 @@ export function useTournament() {
       await updateGlobalTournament({ schedule: newSchedule, matches: newMatches });
       showToast("成績已撤銷並開放重新編輯！", "success");
     } catch (error) { 
-      showToast("撤銷失敗：權權限不足或網路錯誤！", "error"); 
+      showToast("撤銷失敗：權限不足或網路錯誤！", "error"); 
     }
   };
 

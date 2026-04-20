@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Cat, Crown, Swords, Shuffle, Trophy, AlertCircle, ChevronRight, Loader2, Calendar, Clock, Zap, Target, Gift, Coins, Timer } from 'lucide-react';
-// 👉 改用 signInWithRedirect 解決 COOP 彈出視窗被擋的問題
-import { signInWithRedirect } from 'firebase/auth';
+// 🌟 改用 signInWithPopup 解決 GitHub Pages 的重定向 (Redirect) 404 問題
+import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 
 // 👉 引入你的 Banner 圖片
@@ -33,6 +33,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
     // 如果報名已截止且未登入，則不執行後續動作
     if (isRegistrationClosed && !currentUser) return;
 
+    // 如果已經登入，直接前往報名頁面
     if (currentUser) {
       setActiveStep('register');
       return;
@@ -40,12 +41,21 @@ export default function InfoView({ setActiveStep, currentUser }) {
 
     setIsLoggingIn(true);
     try {
-      // 👉 這裡改成 Redirect，畫面會直接跳轉去 Google，登入完自動跳回來
-      await signInWithRedirect(auth, googleProvider);
-      // 跳轉後不需要寫 setActiveStep，因為回來後外層 App.jsx 會偵測到 currentUser
+      // 🌟 使用 Popup 登入：這會開啟一個小視窗，登入完直接關閉，頁面不重整
+      await signInWithPopup(auth, googleProvider);
+      
+      // 登入成功後，主動切換到報名頁面 (App.jsx 的 currentUser 會自動更新)
+      setActiveStep('register');
     } catch (error) {
-      console.error("登入失敗:", error);
-      alert("登入驗證發生錯誤，請再試一次！");
+      console.error("❌ [Auth] 登入失敗:", error.code, error.message);
+      
+      // 針對常見的彈窗攔截錯誤進行提示
+      if (error.code === 'auth/popup-blocked') {
+        alert("登入視窗被瀏覽器攔截了！請允許彈出視窗後再試一次。");
+      } else {
+        alert("登入驗證發生錯誤，請再試一次！");
+      }
+    } finally {
       setIsLoggingIn(false);
     }
   };
