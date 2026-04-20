@@ -200,7 +200,6 @@ export function useTournament() {
     } catch (err) { showToast("退回失敗！", "error"); }
   };
 
-  // 👉 修改：指定撤銷單筆賽程紀錄
   const handleUndoSpecificMatch = async (matchId) => {
     if (!window.confirm('確定要撤銷並退回這筆成績嗎？')) return;
 
@@ -208,7 +207,6 @@ export function useTournament() {
     if (!matchToUndo) return;
 
     try {
-      // 1. 從玩家總分中扣回
       const updatePromises = players.map(player => {
         const detail = matchToUndo.details.find(d => d.player === player.name);
         if (detail) {
@@ -221,7 +219,6 @@ export function useTournament() {
       
       await Promise.all(updatePromises);
 
-      // 2. 解鎖原本那桌的狀態
       const newSchedule = JSON.parse(JSON.stringify(schedule));
       if (matchToUndo.ref) {
         const { rIdx, tIdx } = matchToUndo.ref;
@@ -232,7 +229,6 @@ export function useTournament() {
         }
       }
 
-      // 3. 從紀錄中刪除該筆
       const newMatches = matches.filter(m => m.id !== matchId);
 
       await updateGlobalTournament({ schedule: newSchedule, matches: newMatches });
@@ -305,27 +301,21 @@ export function useTournament() {
     await updateGlobalTournament({ bracket: newBracket });
   };
 
-// 👉 升級版：徹底清空所有資料 (賽程 + 玩家)
+  // 👉 修改完畢：移除所有的 window.confirm，接到指令就直接執行刪除！
   const handleResetAll = async () => {
-    // 第一層確認
-    if (window.confirm('【危險操作】確定要清空「所有參賽者名單」與「賽事紀錄」嗎？\n這通常用於準備舉辦下一屆新賽事。')) {
-      // 第二層確認
-      if (window.confirm('【最終確認】資料刪除後將「完全無法復原」！\n你確定要徹底清空整個資料庫嗎？')) {
-        try {
-          // 1. 清空全域賽程、紀錄與晉級表
-          await updateGlobalTournament({ schedule: [], matches: [], bracket: null });
-          
-          // 2. 刪除 Firestore 中的所有玩家資料
-          const deletePromises = players.map(p => deleteDoc(doc(db, 'players', String(p.id))));
-          await Promise.all(deletePromises);
+    try {
+      // 1. 清空全域賽程、紀錄與晉級表
+      await updateGlobalTournament({ schedule: [], matches: [], bracket: null });
+      
+      // 2. 刪除 Firestore 中的所有玩家資料
+      const deletePromises = players.map(p => deleteDoc(doc(db, 'players', String(p.id))));
+      await Promise.all(deletePromises);
 
-          showToast("系統已徹底重置，準備迎接新賽季！", "success");
-          setActiveStep('info'); // 清空後自動導回首頁
-        } catch (error) {
-          console.error("重置失敗:", error);
-          showToast("重置失敗：權限不足或網路錯誤！", "error");
-        }
-      }
+      showToast("系統已徹底重置，準備迎接新賽季！", "success");
+      setActiveStep('info'); // 清空後自動導回首頁
+    } catch (error) {
+      console.error("重置失敗:", error);
+      showToast("重置失敗：權限不足或網路錯誤！", "error");
     }
   };
 
@@ -334,7 +324,7 @@ export function useTournament() {
     players, sortedPlayers, matches, schedule, bracket, newPlayerName, setNewPlayerName, toast,
     handleAddPlayer, handleApprovePlayer, handleDeletePlayer, handleTableScoreChange, 
     handleProposeScore, handleApproveScore, handleRejectScore, 
-    handleUndoSpecificMatch, // 👈 導出新的指定撤銷功能
+    handleUndoSpecificMatch, 
     handleGenerateSchedule, handleGenerateBracket, handleAdvanceToFinals, handleSetChampion, handleResetAll
   };
 }
