@@ -1,6 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { auth, db } from '../firebase';
-import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth'; // 🌟 引入 getRedirectResult
+// 🌟 引入關鍵函式：getRedirectResult (處理回傳), setPersistence (持久化狀態)
+import { 
+  onAuthStateChanged, 
+  signOut, 
+  getRedirectResult, 
+  setPersistence, 
+  browserLocalPersistence 
+} from 'firebase/auth';
 import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDoc } from 'firebase/firestore';
 
 export function useTournament() {
@@ -20,48 +27,57 @@ export function useTournament() {
   const [bracket, setBracket] = useState(null);
   const [newPlayerName, setNewPlayerName] = useState('');
 
-  // 🌟 Auth 邏輯：處理登入狀態與 GitHub Pages 重定向問題
+  // 🌟 核心 Auth 邏輯：解決 GitHub Pages 登入跳轉問題
   useEffect(() => {
-    // 處理 Redirect 登入後的回傳結果 (解決登入後沒反應的問題)
-    getRedirectResult(auth)
+    // 1. 強制設定持久化（存放在瀏覽器 LocalStorage）
+    setPersistence(auth, browserLocalPersistence)
+      .then(() => {
+        // 2. 捕捉重定向結果 (這是解決「登入後沒反應」的最重要步驟)
+        return getRedirectResult(auth);
+      })
       .then((result) => {
         if (result?.user) {
-          console.log("✅ Redirect Login Success:", result.user.email);
+          console.log("✅ [Auth] 重定向捕捉成功:", result.user.email);
           setCurrentUser(result.user);
         }
       })
       .catch((error) => {
-        console.error("❌ Redirect Login Error:", error);
+        console.error("❌ [Auth] 重定向錯誤:", error.code, error.message);
       });
 
+    // 3. 監聽身分變更
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      console.log("🔥 [Auth] 目前狀態:", user ? user.email : "未登入");
       setCurrentUser(user);
+
       if (user) {
         try {
-          // 檢查管理員身分 (與 Firestore Rules 中的 Email 清單對應)
+          // 檢查管理員清單
           const adminEmails = ['tony80709@yahoo.com.tw', 's85543s2169@gmail.com'];
           const userEmail = user.email ? user.email.toLowerCase() : '';
-          
-          // 嘗試讀取 adminCheck 文件 (觸發 Firestore Rules 檢查)
+
+          // 嘗試觸發 Firestore 權限檢查
           await getDoc(doc(db, 'settings', 'adminCheck'));
-          
+
           if (adminEmails.includes(userEmail)) {
+            console.log("👑 管理員權限已確認");
             setIsAdmin(true);
           } else {
             setIsAdmin(false);
           }
-        } catch (e) { 
-          // 若無權限讀取 adminCheck，則判定為一般玩家
-          setIsAdmin(false); 
+        } catch (e) {
+          // 若 getDoc 被 Firestore Rules 擋掉，代表非管理員
+          setIsAdmin(false);
         }
       } else {
         setIsAdmin(false);
       }
     });
+
     return () => unsubscribeAuth();
   }, []);
 
-  // 監聽玩家清單
+  // 監聽玩家名單
   useEffect(() => {
     const unsubscribePlayers = onSnapshot(collection(db, 'players'), (snapshot) => {
       setPlayers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -69,7 +85,7 @@ export function useTournament() {
     return () => unsubscribePlayers();
   }, []);
 
-  // 監聽全域賽事狀態
+  // 監聽賽事資料
   useEffect(() => {
     const unsubscribeGlobal = onSnapshot(doc(db, 'tournament', 'global'), (docSnap) => {
       if (docSnap.exists()) {
@@ -82,13 +98,16 @@ export function useTournament() {
     return () => unsubscribeGlobal();
   }, []);
 
+  // 排序玩家邏輯
   const sortedPlayers = useMemo(() => {
     return [...players].sort((a, b) => {
       if (a.status === 'pending' && b.status !== 'pending') return 1;
       if (a.status !== 'pending' && b.status === 'pending') return -1;
-      return b.points - a.points;
+      return (b.points || 0) - (a.points || 0);
     });
   }, [players]);
+
+  // --- 操作函式區 ---
 
   const handleSelfRegister = async (e, characterName) => {
     e.preventDefault();
@@ -116,7 +135,11 @@ export function useTournament() {
     } catch (err) { showToast("修改失敗：您沒有權限修改！", "error"); }
   };
 
-  const handleLogout = () => signOut(auth).then(() => setActiveStep('info'));
+  const handleLogout = () => signOut(auth).then(() => {
+    setCurrentUser(null);
+    setIsAdmin(false);
+    setActiveStep('info');
+  });
 
   const updateGlobalTournament = async (newData) => {
     try {
@@ -244,7 +267,7 @@ export function useTournament() {
         const detail = matchToUndo.details.find(d => d.player === player.name);
         if (detail) {
           return updateDoc(doc(db, 'players', String(player.id)), { 
-            points: player.points - detail.pointsChange 
+            points: (player.points || 0) - detail.pointsChange 
           });
         }
         return null;
@@ -263,45 +286,37 @@ export function useTournament() {
       }
 
       const newMatches = matches.filter(m => m.id !== matchId);
-
       await updateGlobalTournament({ schedule: newSchedule, matches: newMatches });
       showToast("成績已撤銷並開放重新編輯！", "success");
     } catch (error) { 
-      showToast("撤銷失敗：底層權限不足或網路錯誤！", "error"); 
+      showToast("撤銷失敗：權限不足或網路錯誤！", "error"); 
     }
   };
 
   const handleGenerateSchedule = async () => {
     const activePlayers = players.filter(p => p.status === 'active');
     if (activePlayers.length < 4) { showToast("活躍玩家不足 4 人！", "error"); return; }
-    let bestSchedule = [];
-    let bestScore = Infinity;
-    for (let attempt = 0; attempt < 100; attempt++) {
-      let currentSchedule = [];
-      let pairCounts = {}; let leftoverCounts = {}; 
-      activePlayers.forEach(p => leftoverCounts[p.id] = 0);
-      let currentScore = 0;
-      for (let r = 0; r < 3; r++) { 
-        let shuffled = [...activePlayers].sort(() => Math.random() - 0.5);
-        shuffled.sort((a, b) => leftoverCounts[a.id] - leftoverCounts[b.id]);
-        const tableCount = Math.floor(activePlayers.length / 4);
-        let roundTables = [];
-        let roundLeftovers = shuffled.slice(tableCount * 4);
-        roundLeftovers.forEach(p => leftoverCounts[p.id]++);
-        let pool = shuffled.slice(0, tableCount * 4);
-        for (let t = 0; t < tableCount; t++) {
-          let playersInTable = pool.slice(t * 4, t * 4 + 4);
-          roundTables.push({ 
-            id: `R${r+1}-T${t+1}`, players: playersInTable, 
-            scores: playersInTable.map(p => ({ playerId: p.id, points: '' })), 
-            isSubmitted: false, status: 'playing', approvals: [] 
-          });
-        }
-        currentSchedule.push({ round: r + 1, tables: roundTables, leftovers: roundLeftovers });
+    let currentSchedule = [];
+    let leftoverCounts = {}; 
+    activePlayers.forEach(p => leftoverCounts[p.id] = 0);
+    
+    for (let r = 0; r < 3; r++) { 
+      let shuffled = [...activePlayers].sort(() => Math.random() - 0.5);
+      const tableCount = Math.floor(activePlayers.length / 4);
+      let roundTables = [];
+      let roundLeftovers = shuffled.slice(tableCount * 4);
+      let pool = shuffled.slice(0, tableCount * 4);
+      for (let t = 0; t < tableCount; t++) {
+        let playersInTable = pool.slice(t * 4, t * 4 + 4);
+        roundTables.push({ 
+          id: `R${r+1}-T${t+1}`, players: playersInTable, 
+          scores: playersInTable.map(p => ({ playerId: p.id, points: '' })), 
+          isSubmitted: false, status: 'playing', approvals: [] 
+        });
       }
-      if (currentScore < bestScore) { bestScore = currentScore; bestSchedule = currentSchedule; }
+      currentSchedule.push({ round: r + 1, tables: roundTables, leftovers: roundLeftovers });
     }
-    await updateGlobalTournament({ schedule: bestSchedule, matches: [], bracket: null });
+    await updateGlobalTournament({ schedule: currentSchedule, matches: [], bracket: null });
     showToast("賽程已產生並發布！", "success");
   };
 
@@ -320,7 +335,7 @@ export function useTournament() {
   };
 
   const handleAdvanceToFinals = async (tableIdx, player) => {
-    if (!player) return;
+    if (!player || !bracket) return;
     const newBracket = JSON.parse(JSON.stringify(bracket));
     newBracket.semifinals[tableIdx].winner = player;
     newBracket.finals.players[tableIdx] = player;
@@ -328,13 +343,12 @@ export function useTournament() {
   };
 
   const handleSetChampion = async (player) => {
-    if (!player) return;
+    if (!player || !bracket) return;
     const newBracket = JSON.parse(JSON.stringify(bracket));
     newBracket.finals.winner = player;
     await updateGlobalTournament({ bracket: newBracket });
   };
 
-  // 🌟 已移除所有視窗提示，改由 UI 觸發
   const handleResetAll = async () => {
     try {
       await updateGlobalTournament({ schedule: [], matches: [], bracket: null });
