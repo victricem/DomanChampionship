@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Cat, Crown, Swords, Shuffle, Trophy, AlertCircle, ChevronRight, Loader2, Calendar, Clock, Zap, Target, Gift, Coins } from 'lucide-react';
-import { signInWithPopup } from 'firebase/auth';
+import React, { useState, useEffect } from 'react';
+import { Cat, Crown, Swords, Shuffle, Trophy, AlertCircle, ChevronRight, Loader2, Calendar, Clock, Zap, Target, Gift, Coins, Timer } from 'lucide-react';
+// 👉 改用 signInWithRedirect 解決 COOP 彈出視窗被擋的問題
+import { signInWithRedirect } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 
 // 👉 引入你的 Banner 圖片
@@ -8,8 +9,30 @@ import mainBanner from '../assets/benner.webp';
 
 export default function InfoView({ setActiveStep, currentUser }) {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRegistrationClosed, setIsRegistrationClosed] = useState(false);
+
+  // 👉 設定報名截止時間：加上 +08:00 強制指定為台北時間
+  const REGISTRATION_DEADLINE = new Date('2026-05-29T21:00:00+08:00').getTime();
+
+  useEffect(() => {
+    // 檢查是否已截止
+    const checkDeadline = () => {
+      const now = new Date().getTime();
+      if (now >= REGISTRATION_DEADLINE) {
+        setIsRegistrationClosed(true);
+      }
+    };
+
+    checkDeadline();
+    // 每分鐘自動檢查一次，確保時間到時立即鎖定
+    const timer = setInterval(checkDeadline, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleAction = async () => {
+    // 如果報名已截止且未登入，則不執行後續動作
+    if (isRegistrationClosed && !currentUser) return;
+
     if (currentUser) {
       setActiveStep('register');
       return;
@@ -17,12 +40,12 @@ export default function InfoView({ setActiveStep, currentUser }) {
 
     setIsLoggingIn(true);
     try {
-      await signInWithPopup(auth, googleProvider);
-      setActiveStep('register');
+      // 👉 這裡改成 Redirect，畫面會直接跳轉去 Google，登入完自動跳回來
+      await signInWithRedirect(auth, googleProvider);
+      // 跳轉後不需要寫 setActiveStep，因為回來後外層 App.jsx 會偵測到 currentUser
     } catch (error) {
       console.error("登入失敗:", error);
-      alert("登入驗證失敗或已取消，請再試一次！");
-    } finally {
+      alert("登入驗證發生錯誤，請再試一次！");
       setIsLoggingIn(false);
     }
   };
@@ -63,11 +86,19 @@ export default function InfoView({ setActiveStep, currentUser }) {
             多瑪雀王爭霸戰
           </h1>
           
-          <p className="text-lg md:text-2xl text-amber-100/80 font-bold tracking-[0.3em] flex items-center justify-center gap-4 mb-10">
+          <p className="text-lg md:text-2xl text-amber-100/80 font-bold tracking-[0.3em] flex items-center justify-center gap-4 mb-8">
             <Swords className="w-5 h-5 md:w-6 md:h-6 text-orange-500" /> 
             第一屆頂尖對決 
             <Swords className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />
           </p>
+
+          {/* 🌟 報名期限顯示 */}
+          <div className="mb-10 px-6 py-2 bg-red-500/10 border border-red-500/30 rounded-full flex items-center gap-3 animate-pulse">
+            <Timer className="w-5 h-5 text-red-400" />
+            <span className="text-red-100 text-sm md:text-base font-bold tracking-widest">
+              報名期限：即日起 至 5/29 (五) 21:00 止
+            </span>
+          </div>
 
           {/* 活動時間總覽 */}
           <div className="flex flex-col md:flex-row items-stretch gap-4 w-full max-w-3xl mb-2">
@@ -242,24 +273,42 @@ export default function InfoView({ setActiveStep, currentUser }) {
       {/* --- Footer CTA --- */}
       <div className="pt-6 pb-10 text-center relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-orange-500/10 blur-[80px] -z-10"></div>
+        
+        {/* 🌟 報名截止後的按鈕樣式切換 */}
         <button 
           onClick={handleAction} 
-          disabled={isLoggingIn}
-          className={`group relative inline-flex items-center justify-center px-16 py-7 text-2xl md:text-3xl font-black text-white transition-all duration-300 ease-in-out bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-[length:200%_auto] rounded-full transform 
-            ${isLoggingIn ? 'opacity-80 cursor-not-allowed scale-95' : 'hover:bg-right hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] hover:-translate-y-2'}`}
+          disabled={isLoggingIn || (isRegistrationClosed && !currentUser)}
+          className={`group relative inline-flex items-center justify-center px-16 py-7 text-2xl md:text-3xl font-black text-white transition-all duration-300 ease-in-out rounded-full transform 
+            ${(isRegistrationClosed && !currentUser) 
+              ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed scale-95' 
+              : 'bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-[length:200%_auto] hover:bg-right hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] hover:-translate-y-2'
+            } ${isLoggingIn ? 'opacity-80 scale-95 cursor-wait' : ''}`}
         >
-          {!isLoggingIn && <span className="absolute inset-0 w-full h-full rounded-full ring-4 ring-orange-500/50 group-hover:ring-orange-400/50 animate-ping opacity-20"></span>}
+          {(!isLoggingIn && !isRegistrationClosed) && <span className="absolute inset-0 w-full h-full rounded-full ring-4 ring-orange-500/30 group-hover:ring-orange-400/50 animate-ping opacity-20"></span>}
           
           <span className="tracking-[0.1em] drop-shadow-md">
-            {currentUser ? '進入報名系統' : (isLoggingIn ? '驗證中...' : '立即登入報名')}
+            {currentUser 
+              ? '進入報名系統' 
+              : (isRegistrationClosed 
+                  ? '報名已截止' 
+                  : (isLoggingIn ? '驗證中...' : '立即登入報名')
+                )
+            }
           </span>
           
           {isLoggingIn ? (
             <Loader2 className="w-8 h-8 md:w-10 md:h-10 ml-4 animate-spin text-yellow-100" />
           ) : (
-            <ChevronRight className="w-8 h-8 md:w-10 md:h-10 ml-2 group-hover:translate-x-3 transition-transform duration-300" />
+            !isRegistrationClosed && <ChevronRight className="w-8 h-8 md:w-10 md:h-10 ml-2 group-hover:translate-x-3 transition-transform duration-300" />
           )}
         </button>
+
+        {/* 🌟 截止提示訊息 */}
+        {isRegistrationClosed && !currentUser && (
+          <p className="text-red-400/80 text-sm mt-6 font-bold tracking-widest flex items-center justify-center gap-2">
+            <AlertCircle className="w-4 h-4" /> 很抱歉，本屆賽事報名時間已結束。
+          </p>
+        )}
       </div>
     </div>
   );
