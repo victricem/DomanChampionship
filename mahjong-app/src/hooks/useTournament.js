@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { auth, db } from '../firebase';
-// 引入關鍵函式：處理跳轉結果與持久化狀態
 import { 
   onAuthStateChanged, 
   signOut, 
@@ -16,7 +15,7 @@ export function useTournament() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
 
-  // 提示訊息功能
+  // 原生 Toast 提示功能
   const showToast = (message, type = 'error') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
@@ -28,47 +27,32 @@ export function useTournament() {
   const [bracket, setBracket] = useState(null);
   const [newPlayerName, setNewPlayerName] = useState('');
 
-  // 🌟 [核心修復] Auth 邏輯：處理重定向、狀態持久化與管理員判定
+  // Auth 邏輯
   useEffect(() => {
     console.log("🚀 [System] 初始化 Tournament Hook...");
 
-    // 1. 設定登入狀態持久化
     setPersistence(auth, browserLocalPersistence)
-      .then(() => {
-        // 2. 捕捉重定向回來的憑證
-        return getRedirectResult(auth);
-      })
+      .then(() => getRedirectResult(auth))
       .then((result) => {
         if (result?.user) {
-          console.log("✅ [Auth] 捕捉到重定向使用者:", result.user.email);
           setCurrentUser(result.user);
         }
       })
-      .catch((error) => {
-        console.error("❌ [Auth] 重定向捕捉錯誤:", error.code);
-      });
+      .catch((error) => console.error("❌ [Auth] 重定向捕捉錯誤:", error.code));
 
-    // 3. 監聽全域身分變更
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      console.log("🔥 [Auth] 目前狀態:", user ? `已登入 (${user.email})` : "未登入");
       setCurrentUser(user);
-
       if (user) {
         try {
           const adminEmails = ['tony80709@yahoo.com.tw', 's85543s2169@gmail.com'];
           const userEmail = user.email ? user.email.toLowerCase() : '';
-
-          // 嘗試讀取管理員核對文件
           await getDoc(doc(db, 'settings', 'adminCheck'));
-
           if (adminEmails.includes(userEmail)) {
-            console.log("👑 [Auth] 管理員權限已確認");
             setIsAdmin(true);
           } else {
             setIsAdmin(false);
           }
         } catch (e) {
-          // 權限不足則判定為一般使用者
           setIsAdmin(false);
         }
       } else {
@@ -79,7 +63,7 @@ export function useTournament() {
     return () => unsubscribeAuth();
   }, []);
 
-  // 監聽資料庫變動
+  // 監聽資料庫
   useEffect(() => {
     const unsubscribePlayers = onSnapshot(collection(db, 'players'), (snapshot) => {
       setPlayers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -98,17 +82,14 @@ export function useTournament() {
     };
   }, []);
 
-  // 🌟 [邏輯修改] 判定是否為「正式參賽者」
-  // 只有 status 不是 visitor 且不是 null 時，才算真正報名完成
   const isRegistered = useMemo(() => {
     const me = players.find(p => p.uid === currentUser?.uid);
     return me && me.status !== 'visitor';
   }, [players, currentUser]);
 
-  // 排序邏輯
   const sortedPlayers = useMemo(() => {
     return [...players]
-      .filter(p => p.status !== 'visitor') // 僅排序正式參賽者
+      .filter(p => p.status !== 'visitor') 
       .sort((a, b) => {
         if (a.status === 'pending' && b.status !== 'pending') return 1;
         if (a.status !== 'pending' && b.status === 'pending') return -1;
@@ -116,18 +97,33 @@ export function useTournament() {
       });
   }, [players]);
 
+  // 🌟 [新增] 檢查名稱是否重複的核心防呆函式
+  const checkDuplicateName = (nameToCheck, excludeUid = null) => {
+    const isExist = players.some(p => 
+      p.name.toLowerCase() === nameToCheck.trim().toLowerCase() && 
+      p.uid !== excludeUid // 排除比對自己目前的名稱
+    );
+    if (isExist) {
+      showToast("此角色名稱已被使用，請更換一個喵！", "error"); // 使用原生 Toast
+    }
+    return isExist;
+  };
+
   // --- 使用者操作函式 ---
 
-  // 🌟 [新增] 快速設定暱稱：狀態設為 visitor，僅供顯示不進入報名名單
   const handleQuickSetName = async (name) => {
     if (!name.trim() || !currentUser) return;
+    
+    // 🌟 寫入前檢查名稱重複
+    if (checkDuplicateName(name, currentUser.uid)) return;
+
     try {
       await setDoc(doc(db, 'players', currentUser.uid), {
         uid: currentUser.uid,
         email: currentUser.email,
         name: name.trim(),
         points: 0,
-        status: 'visitor', // 訪客模式
+        status: 'visitor', 
         createdAt: Date.now()
       }, { merge: true });
       showToast("暱稱設定成功！", "success");
@@ -136,17 +132,20 @@ export function useTournament() {
     }
   };
 
-  // 🌟 [修改] 正式提交報名：將狀態轉為 pending
   const handleSelfRegister = async (e, characterName) => {
     if (e) e.preventDefault();
     if (!characterName.trim() || !currentUser) return;
+
+    // 🌟 寫入前檢查名稱重複
+    if (checkDuplicateName(characterName, currentUser.uid)) return;
+
     try {
       await setDoc(doc(db, 'players', currentUser.uid), {
         uid: currentUser.uid, 
         email: currentUser.email, 
         name: characterName.trim(), 
         points: 0, 
-        status: 'pending', // 正式進入報名審核
+        status: 'pending', 
         createdAt: Date.now()
       }, { merge: true });
       showToast("報名申請已送出！", "success");
@@ -155,33 +154,37 @@ export function useTournament() {
     }
   };
 
-  // 修改角色名稱
   const handleUpdatePlayerName = async (newName) => {
     if (!newName.trim() || !currentUser) return;
+
+    // 🌟 寫入前檢查名稱重複
+    if (checkDuplicateName(newName, currentUser.uid)) return;
+
     try {
       await updateDoc(doc(db, 'players', currentUser.uid), { name: newName.trim() });
       showToast("名稱修改成功！", "success");
     } catch (err) { showToast("修改失敗：權限不足！", "error"); }
   };
 
-  // 登出
   const handleLogout = () => signOut(auth).then(() => {
     setCurrentUser(null);
     setIsAdmin(false);
     setActiveStep('info');
   });
 
-  // 全域更新
   const updateGlobalTournament = async (newData) => {
     try {
       await setDoc(doc(db, 'tournament', 'global'), newData, { merge: true });
     } catch (err) { showToast("同步至雲端失敗！", "error"); }
   };
 
-  // [管理員] 手動操作函式
   const handleAddPlayer = async (e) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return;
+
+    // 🌟 管理員手動新增時，也要檢查名稱重複
+    if (checkDuplicateName(newPlayerName)) return;
+
     try {
       const newRef = doc(collection(db, 'players'));
       await setDoc(newRef, { uid: newRef.id, name: newPlayerName.trim(), points: 0, status: 'pending' });
@@ -206,7 +209,6 @@ export function useTournament() {
     }
   };
 
-  // 賽程分數處理
   const handleTableScoreChange = (rIdx, tIdx, pIdx, value) => {
     if (!/^-?\d*$/.test(value)) return;
     const newSchedule = JSON.parse(JSON.stringify(schedule));

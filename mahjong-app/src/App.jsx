@@ -12,14 +12,16 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   const tournamentState = useTournament();
-  const { toast, currentUser, players, isAdmin } = tournamentState;
-
-  const isRegistered = players.some(p => p.uid === currentUser?.uid);
+  // 🌟 修改重點 1：將遺漏的 handleQuickSetName, handleUpdatePlayerName 以及 isRegistered 解構出來
+  const { 
+    toast, currentUser, players, isAdmin, isRegistered,
+    handleQuickSetName, handleUpdatePlayerName 
+  } = tournamentState;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0A0F1C] text-slate-200 font-sans selection:bg-orange-500/30 relative">
       
-      {/* 全域 Toast */}
+      {/* 全域 Toast (提示訊息) */}
       {toast.show && (
         <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-[100] animate-fade-in flex items-center shadow-2xl rounded-2xl px-6 py-3 border border-slate-700 bg-slate-900/95 backdrop-blur text-slate-100 min-w-[300px] justify-center">
           {toast.type === 'error' ? (
@@ -31,12 +33,14 @@ export default function App() {
         </div>
       )}
 
-      {/* 🌟 修改這裡：傳入 setActiveStep */}
+      {/* 🌟 修改重點 2：把剛才解構出來的函式，當作 Prop 傳給 Navbar */}
       <Navbar 
         currentUser={currentUser} 
         handleLogout={tournamentState.handleLogout} 
         players={players}
         setActiveStep={tournamentState.setActiveStep}
+        handleQuickSetName={handleQuickSetName}
+        handleUpdatePlayerName={handleUpdatePlayerName}
       />
       
       <div className="flex-grow pt-4 px-4 md:px-8 max-w-7xl mx-auto w-full">
