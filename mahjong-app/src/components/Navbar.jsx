@@ -2,10 +2,8 @@ import React from 'react';
 import { Crown } from 'lucide-react';
 
 export default function Navbar({ currentUser, handleLogout, players }) {
+  // 從 players 陣列中找出目前登入者的資料
   const myRegistration = players?.find(p => p.uid === currentUser?.uid);
-  const displayName = myRegistration 
-    ? myRegistration.name 
-    : (currentUser?.displayName || '尚未設定角色');
 
   return (
     <nav className="sticky top-0 z-50 bg-[#0A0F1C]/90 backdrop-blur-xl border-b border-slate-800 shadow-xl">
@@ -28,12 +26,24 @@ export default function Navbar({ currentUser, handleLogout, players }) {
             </div>
           </div>
           
-          {/* 右側：已移除大頭貼，只顯示名稱 */}
+          {/* 右側：登入資訊區 */}
           {currentUser && (
             <div className="flex items-center gap-3 bg-slate-900/60 px-5 py-2 rounded-full border border-slate-800 shadow-sm">
-              <span className="text-sm font-bold text-slate-200 tracking-wide truncate max-w-[120px] md:max-w-[180px]">
-                {displayName}
-              </span>
+              
+              {/* 🌟 角色名稱 / 報名提示區 */}
+              <div className="text-sm font-bold tracking-wide truncate max-w-[150px] md:max-w-[200px]">
+                {myRegistration ? (
+                  // 1. 如果已報名：顯示角色名稱
+                  <span className="text-slate-200">
+                    {myRegistration.name}
+                  </span>
+                ) : (
+                  // 2. 如果未報名：顯示橘色閃爍提示
+                  <span className="text-orange-500 animate-pulse">
+                    請輸入角色ID報名
+                  </span>
+                )}
+              </div>
               
               {/* 分隔線 */}
               <div className="w-px h-4 bg-slate-700 mx-1"></div>

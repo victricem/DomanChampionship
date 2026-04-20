@@ -37,6 +37,7 @@ export default function App() {
         currentUser={currentUser} 
         handleLogout={tournamentState.handleLogout} 
         players={players}
+        isRegistered={isRegistered}
       />
       
       {/* 內容區塊加上 flex-grow */}
