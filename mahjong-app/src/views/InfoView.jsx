@@ -141,7 +141,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
             <p className="text-amber-500 font-black tracking-[0.3em] text-sm mb-2 uppercase">Champion</p>
             <h4 className="text-2xl font-black text-white mb-3">第一名</h4>
             <div className="flex items-center justify-center gap-2">
-              <span className="text-4xl font-black text-white italic">OOO</span>
+              <span className="text-4xl font-black text-white italic">300</span>
               <span className="text-xl font-bold text-amber-400/80">萬 Gil</span>
             </div>
           </div>
@@ -153,7 +153,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
             <p className="text-slate-400 font-black tracking-[0.3em] text-sm mb-2 uppercase">Runner-up</p>
             <h4 className="text-2xl font-black text-white mb-3">第二名</h4>
             <div className="flex items-center justify-center gap-2">
-              <span className="text-4xl font-black text-white italic">OOO</span>
+              <span className="text-4xl font-black text-white italic">200</span>
               <span className="text-xl font-bold text-slate-400">萬 Gil</span>
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
             <p className="text-orange-700 font-black tracking-[0.3em] text-sm mb-2 uppercase">Third Place</p>
             <h4 className="text-2xl font-black text-white mb-3">第三名</h4>
             <div className="flex items-center justify-center gap-2">
-              <span className="text-4xl font-black text-white italic">OOO</span>
+              <span className="text-4xl font-black text-white italic">100</span>
               <span className="text-xl font-bold text-orange-700">萬 Gil</span>
             </div>
           </div>
@@ -253,7 +253,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
           <div>
             <h4 className="font-black text-xl text-slate-100 mb-2">參賽保證金</h4>
             <p className="text-slate-400 leading-relaxed font-medium">
-              報名需繳交 <strong className="text-orange-400">10 萬 Gil</strong>。此筆費用將於完賽後全額退回。
+              報名需預繳 <strong className="text-orange-400">10 萬 Gil</strong> 保證金。該費用將於選手<strong className="text-white">順利完賽後全額發還</strong>；若無故缺席或未完成賽事，保證金將<strong className="text-red-400">不予退還</strong>。
             </p>
           </div>
         </div>
