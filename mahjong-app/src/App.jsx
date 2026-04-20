@@ -8,14 +8,16 @@ import RegisterView from './views/RegisterView';
 import MatchmakingView from './views/MatchmakingView';
 import TournamentView from './views/TournamentView';
 import BracketView from './views/BracketView';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+// 🌟 引入 AlertTriangle 供確認視窗使用
+import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function App() {
   const tournamentState = useTournament();
-  // 🌟 修改重點 1：將遺漏的 handleQuickSetName, handleUpdatePlayerName 以及 isRegistered 解構出來
+  
   const { 
     toast, currentUser, players, isAdmin, isRegistered,
-    handleQuickSetName, handleUpdatePlayerName 
+    handleQuickSetName, handleUpdatePlayerName,
+    confirmModal, closeConfirm // 🌟 解構出對話框狀態
   } = tournamentState;
 
   return (
@@ -33,7 +35,42 @@ export default function App() {
         </div>
       )}
 
-      {/* 🌟 修改重點 2：把剛才解構出來的函式，當作 Prop 傳給 Navbar */}
+      {/* 🌟 [新增] 全域客製化確認對話框 (取代 window.confirm) */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm animate-fade-in" onClick={closeConfirm}></div>
+          <div className="relative bg-slate-900 border border-slate-700 p-6 md:p-8 rounded-[2rem] max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4 border border-amber-500/20">
+                <AlertTriangle className="w-8 h-8 text-amber-500" />
+              </div>
+              <h3 className="text-2xl font-black text-white mb-2">{confirmModal.title}</h3>
+              <p className="text-slate-300 text-sm leading-relaxed mb-8 font-medium">
+                {confirmModal.message}
+              </p>
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={closeConfirm}
+                  className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition-colors"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={() => {
+                    confirmModal.action(); // 執行傳入的邏輯
+                    closeConfirm(); // 關閉視窗
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition-colors shadow-lg shadow-orange-600/20"
+                >
+                  確認執行
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navbar 元件 */}
       <Navbar 
         currentUser={currentUser} 
         handleLogout={tournamentState.handleLogout} 

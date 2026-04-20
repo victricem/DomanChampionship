@@ -13,12 +13,25 @@ export function useTournament() {
   const [activeStep, setActiveStep] = useState('info');
   const [currentUser, setCurrentUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // 提示訊息狀態
   const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
+  
+  // 🌟 [新增] 全域確認對話框狀態
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null });
 
-  // 原生 Toast 提示功能
   const showToast = (message, type = 'error') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+  };
+
+  // 🌟 [新增] 呼叫確認對話框的專用函式
+  const requestConfirm = (title, message, action) => {
+    setConfirmModal({ isOpen: true, title, message, action });
+  };
+
+  const closeConfirm = () => {
+    setConfirmModal({ isOpen: false, title: '', message: '', action: null });
   };
 
   const [players, setPlayers] = useState([]);
@@ -97,14 +110,13 @@ export function useTournament() {
       });
   }, [players]);
 
-  // 🌟 [新增] 檢查名稱是否重複的核心防呆函式
   const checkDuplicateName = (nameToCheck, excludeUid = null) => {
     const isExist = players.some(p => 
       p.name.toLowerCase() === nameToCheck.trim().toLowerCase() && 
-      p.uid !== excludeUid // 排除比對自己目前的名稱
+      p.uid !== excludeUid
     );
     if (isExist) {
-      showToast("此角色名稱已被使用，請更換一個喵！", "error"); // 使用原生 Toast
+      showToast("此角色名稱已被使用，請更換一個喵！", "error"); 
     }
     return isExist;
   };
@@ -113,53 +125,30 @@ export function useTournament() {
 
   const handleQuickSetName = async (name) => {
     if (!name.trim() || !currentUser) return;
-    
-    // 🌟 寫入前檢查名稱重複
     if (checkDuplicateName(name, currentUser.uid)) return;
-
     try {
       await setDoc(doc(db, 'players', currentUser.uid), {
-        uid: currentUser.uid,
-        email: currentUser.email,
-        name: name.trim(),
-        points: 0,
-        status: 'visitor', 
-        createdAt: Date.now()
+        uid: currentUser.uid, email: currentUser.email, name: name.trim(), points: 0, status: 'visitor', createdAt: Date.now()
       }, { merge: true });
       showToast("暱稱設定成功！", "success");
-    } catch (err) {
-      showToast("設定失敗，請檢查權限！", "error");
-    }
+    } catch (err) { showToast("設定失敗，請檢查權限！", "error"); }
   };
 
   const handleSelfRegister = async (e, characterName) => {
     if (e) e.preventDefault();
     if (!characterName.trim() || !currentUser) return;
-
-    // 🌟 寫入前檢查名稱重複
     if (checkDuplicateName(characterName, currentUser.uid)) return;
-
     try {
       await setDoc(doc(db, 'players', currentUser.uid), {
-        uid: currentUser.uid, 
-        email: currentUser.email, 
-        name: characterName.trim(), 
-        points: 0, 
-        status: 'pending', 
-        createdAt: Date.now()
+        uid: currentUser.uid, email: currentUser.email, name: characterName.trim(), points: 0, status: 'pending', createdAt: Date.now()
       }, { merge: true });
       showToast("報名申請已送出！", "success");
-    } catch (err) { 
-      showToast("報名失敗，請稍後再試！", "error"); 
-    }
+    } catch (err) { showToast("報名失敗，請稍後再試！", "error"); }
   };
 
   const handleUpdatePlayerName = async (newName) => {
     if (!newName.trim() || !currentUser) return;
-
-    // 🌟 寫入前檢查名稱重複
     if (checkDuplicateName(newName, currentUser.uid)) return;
-
     try {
       await updateDoc(doc(db, 'players', currentUser.uid), { name: newName.trim() });
       showToast("名稱修改成功！", "success");
@@ -181,10 +170,7 @@ export function useTournament() {
   const handleAddPlayer = async (e) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return;
-
-    // 🌟 管理員手動新增時，也要檢查名稱重複
     if (checkDuplicateName(newPlayerName)) return;
-
     try {
       const newRef = doc(collection(db, 'players'));
       await setDoc(newRef, { uid: newRef.id, name: newPlayerName.trim(), points: 0, status: 'pending' });
@@ -200,13 +186,14 @@ export function useTournament() {
     } catch (error) { showToast("核准失敗！", "error"); }
   };
 
-  const handleDeletePlayer = async (id) => {
-    if (window.confirm('確定移除該名使用者？')) {
+  // 🌟 [修改] 移除 window.confirm
+  const handleDeletePlayer = (id) => {
+    requestConfirm('移除參賽者', '確定要移除該名使用者嗎？此動作將無法復原。', async () => {
       try {
         await deleteDoc(doc(db, 'players', String(id)));
         showToast("已成功移除！", "success");
       } catch (error) { showToast("移除失敗！", "error"); }
-    }
+    });
   };
 
   const handleTableScoreChange = (rIdx, tIdx, pIdx, value) => {
@@ -280,25 +267,27 @@ export function useTournament() {
     showToast("已退回修改！", "error");
   };
 
-  const handleUndoSpecificMatch = async (matchId) => {
-    if (!window.confirm('確定要撤銷積分嗎？')) return;
-    const match = matches.find(m => m.id === matchId);
-    if (!match) return;
-    try {
-      const rollbackPromises = players.map(p => {
-        const detail = match.details.find(d => d.player === p.name);
-        return detail ? updateDoc(doc(db, 'players', String(p.id)), { points: (p.points || 0) - detail.pointsChange }) : null;
-      }).filter(p => p !== null);
-      await Promise.all(rollbackPromises);
+  // 🌟 [修改] 移除 window.confirm
+  const handleUndoSpecificMatch = (matchId) => {
+    requestConfirm('撤銷成績', '確定要撤銷這筆積分嗎？選手的積分將會回溯，且退回為編輯狀態。', async () => {
+      const match = matches.find(m => m.id === matchId);
+      if (!match) return;
+      try {
+        const rollbackPromises = players.map(p => {
+          const detail = match.details.find(d => d.player === p.name);
+          return detail ? updateDoc(doc(db, 'players', String(p.id)), { points: (p.points || 0) - detail.pointsChange }) : null;
+        }).filter(p => p !== null);
+        await Promise.all(rollbackPromises);
 
-      const newSchedule = JSON.parse(JSON.stringify(schedule));
-      if (match.ref && newSchedule[match.ref.rIdx]?.tables[match.ref.tIdx]) {
-        const t = newSchedule[match.ref.rIdx].tables[match.ref.tIdx];
-        t.isSubmitted = false; t.status = 'playing'; t.approvals = [];
-      }
-      await updateGlobalTournament({ schedule: newSchedule, matches: matches.filter(m => m.id !== matchId) });
-      showToast("積分已回溯！", "success");
-    } catch (e) { showToast("撤銷失敗！", "error"); }
+        const newSchedule = JSON.parse(JSON.stringify(schedule));
+        if (match.ref && newSchedule[match.ref.rIdx]?.tables[match.ref.tIdx]) {
+          const t = newSchedule[match.ref.rIdx].tables[match.ref.tIdx];
+          t.isSubmitted = false; t.status = 'playing'; t.approvals = [];
+        }
+        await updateGlobalTournament({ schedule: newSchedule, matches: matches.filter(m => m.id !== matchId) });
+        showToast("積分已回溯！", "success");
+      } catch (e) { showToast("撤銷失敗！", "error"); }
+    });
   };
 
   const handleGenerateSchedule = async () => {
@@ -323,16 +312,25 @@ export function useTournament() {
     showToast("賽程已發布！", "success");
   };
 
-  const handleGenerateBracket = async (auto = false) => {
+  // 🌟 [修改] 移除 window.confirm
+  const handleGenerateBracket = (auto = false) => {
     const sorted = sortedPlayers.filter(p => p.status === 'active');
-    if (sorted.length < 16 && !auto) { if (!window.confirm('人數不足 16 人，確定產生？')) return; }
-    const top16 = sorted.slice(0, 16);
-    let shuf = [...top16].sort(() => Math.random() - 0.5);
-    const semis = ['A', 'B', 'C', 'D'].map((id, i) => ({
-      id, players: shuf.slice(i * 4, i * 4 + 4).map(p => p || null), winner: null
-    }));
-    await updateGlobalTournament({ bracket: { semifinals: semis, finals: { players: [null,null,null,null], winner: null } } });
-    showToast("晉級表已發布！", "success");
+    
+    const executeGen = async () => {
+      const top16 = sorted.slice(0, 16);
+      let shuf = [...top16].sort(() => Math.random() - 0.5);
+      const semis = ['A', 'B', 'C', 'D'].map((id, i) => ({
+        id, players: shuf.slice(i * 4, i * 4 + 4).map(p => p || null), winner: null
+      }));
+      await updateGlobalTournament({ bracket: { semifinals: semis, finals: { players: [null,null,null,null], winner: null } } });
+      showToast("晉級表已發布！", "success");
+    };
+
+    if (sorted.length < 16 && !auto) { 
+      requestConfirm('人數不足警告', '目前活躍人數不足 16 人，確定要強制產生晉級表嗎？', executeGen);
+    } else {
+      executeGen();
+    }
   };
 
   const handleAdvanceToFinals = async (idx, player) => {
@@ -362,7 +360,7 @@ export function useTournament() {
   return {
     activeStep, setActiveStep, currentUser, isAdmin, isRegistered, handleLogout, 
     handleSelfRegister, handleQuickSetName, handleUpdatePlayerName, players, sortedPlayers, 
-    matches, schedule, bracket, newPlayerName, setNewPlayerName, toast,
+    matches, schedule, bracket, newPlayerName, setNewPlayerName, toast, confirmModal, closeConfirm,
     handleAddPlayer, handleApprovePlayer, handleDeletePlayer, 
     handleTableScoreChange, handleProposeScore, handleApproveScore, handleRejectScore, 
     handleUndoSpecificMatch, handleGenerateSchedule, handleGenerateBracket, 
