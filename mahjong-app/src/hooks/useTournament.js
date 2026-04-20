@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { auth, db } from '../firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth'; // 🌟 引入 getRedirectResult
 import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDoc } from 'firebase/firestore';
 
 export function useTournament() {
@@ -20,19 +20,48 @@ export function useTournament() {
   const [bracket, setBracket] = useState(null);
   const [newPlayerName, setNewPlayerName] = useState('');
 
+  // 🌟 Auth 邏輯：處理登入狀態與 GitHub Pages 重定向問題
   useEffect(() => {
+    // 處理 Redirect 登入後的回傳結果 (解決登入後沒反應的問題)
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          console.log("✅ Redirect Login Success:", result.user.email);
+          setCurrentUser(result.user);
+        }
+      })
+      .catch((error) => {
+        console.error("❌ Redirect Login Error:", error);
+      });
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
         try {
+          // 檢查管理員身分 (與 Firestore Rules 中的 Email 清單對應)
+          const adminEmails = ['tony80709@yahoo.com.tw', 's85543s2169@gmail.com'];
+          const userEmail = user.email ? user.email.toLowerCase() : '';
+          
+          // 嘗試讀取 adminCheck 文件 (觸發 Firestore Rules 檢查)
           await getDoc(doc(db, 'settings', 'adminCheck'));
-          setIsAdmin(true);
-        } catch { setIsAdmin(false); }
-      } else { setIsAdmin(false); }
+          
+          if (adminEmails.includes(userEmail)) {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+        } catch (e) { 
+          // 若無權限讀取 adminCheck，則判定為一般玩家
+          setIsAdmin(false); 
+        }
+      } else {
+        setIsAdmin(false);
+      }
     });
     return () => unsubscribeAuth();
   }, []);
 
+  // 監聽玩家清單
   useEffect(() => {
     const unsubscribePlayers = onSnapshot(collection(db, 'players'), (snapshot) => {
       setPlayers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -40,6 +69,7 @@ export function useTournament() {
     return () => unsubscribePlayers();
   }, []);
 
+  // 監聽全域賽事狀態
   useEffect(() => {
     const unsubscribeGlobal = onSnapshot(doc(db, 'tournament', 'global'), (docSnap) => {
       if (docSnap.exists()) {
@@ -72,7 +102,10 @@ export function useTournament() {
         points: 0, status: 'pending', createdAt: Date.now()
       });
       showToast("報名資料送出成功！", "success");
-    } catch (err) { showToast("報名失敗，請確認權限設定！", "error"); }
+    } catch (err) { 
+      console.error(err);
+      showToast("報名失敗，請確認權限設定！", "error"); 
+    }
   };
 
   const handleUpdatePlayerName = async (newName) => {
@@ -110,7 +143,7 @@ export function useTournament() {
   };
 
   const handleDeletePlayer = async (id) => {
-    if (window.confirm('確定移除？')) {
+    if (window.confirm('確定移除該名參賽者？')) {
       try {
         await deleteDoc(doc(db, 'players', String(id)));
         showToast("已移除該參賽者！", "success");
@@ -172,7 +205,7 @@ export function useTournament() {
         const matchRecord = {
           id: Date.now(),
           stage: `初賽 (第 ${rIdx + 1} 局 - 第 ${tIdx + 1} 桌)`,
-          ref: { rIdx, tIdx }, // 保留原本在 schedule 裡的位置索引
+          ref: { rIdx, tIdx },
           time: new Date().toLocaleTimeString(),
           details: table.players.map((p, i) => ({ player: p.name, pointsChange: Number(table.scores[i].points) }))
         };
@@ -301,18 +334,14 @@ export function useTournament() {
     await updateGlobalTournament({ bracket: newBracket });
   };
 
-  // 👉 修改完畢：移除所有的 window.confirm，接到指令就直接執行刪除！
+  // 🌟 已移除所有視窗提示，改由 UI 觸發
   const handleResetAll = async () => {
     try {
-      // 1. 清空全域賽程、紀錄與晉級表
       await updateGlobalTournament({ schedule: [], matches: [], bracket: null });
-      
-      // 2. 刪除 Firestore 中的所有玩家資料
       const deletePromises = players.map(p => deleteDoc(doc(db, 'players', String(p.id))));
       await Promise.all(deletePromises);
-
       showToast("系統已徹底重置，準備迎接新賽季！", "success");
-      setActiveStep('info'); // 清空後自動導回首頁
+      setActiveStep('info'); 
     } catch (error) {
       console.error("重置失敗:", error);
       showToast("重置失敗：權限不足或網路錯誤！", "error");
