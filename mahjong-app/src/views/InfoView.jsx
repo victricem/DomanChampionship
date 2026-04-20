@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Cat, Crown, Swords, Shuffle, Trophy, AlertCircle, ChevronRight, Loader2, Calendar, Clock, Zap, Target, Gift, Coins, Timer } from 'lucide-react';
-// 🌟 改用 signInWithPopup 解決 GitHub Pages 的重定向 (Redirect) 404 問題
+// 🌟 核心修改：改用 signInWithPopup 解決 GitHub Pages 的環境限制問題
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 
-// 👉 引入你的 Banner 圖片
+// 引入 Banner 圖片
 import mainBanner from '../assets/benner.webp';
 
 export default function InfoView({ setActiveStep, currentUser }) {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isRegistrationClosed, setIsRegistrationClosed] = useState(false);
 
-  // 👉 設定報名截止時間：加上 +08:00 強制指定為台北時間
+  // 設定報名截止時間：台北時間 2026/05/29 21:00
   const REGISTRATION_DEADLINE = new Date('2026-05-29T21:00:00+08:00').getTime();
+
+  // 🌟 關鍵邏輯：監聽登入狀態。只要一登入成功，就自動跳轉到報名分頁
+  useEffect(() => {
+    if (currentUser) {
+      setActiveStep('register');
+    }
+  }, [currentUser, setActiveStep]);
 
   useEffect(() => {
     // 檢查是否已截止
@@ -24,13 +31,12 @@ export default function InfoView({ setActiveStep, currentUser }) {
     };
 
     checkDeadline();
-    // 每分鐘自動檢查一次，確保時間到時立即鎖定
     const timer = setInterval(checkDeadline, 60000);
     return () => clearInterval(timer);
   }, []);
 
   const handleAction = async () => {
-    // 如果報名已截止且未登入，則不執行後續動作
+    // 如果報名已截止且未登入，則不執行動作
     if (isRegistrationClosed && !currentUser) return;
 
     // 如果已經登入，直接前往報名頁面
@@ -41,21 +47,18 @@ export default function InfoView({ setActiveStep, currentUser }) {
 
     setIsLoggingIn(true);
     try {
-      // 🌟 使用 Popup 登入：這會開啟一個小視窗，登入完直接關閉，頁面不重整
-      await signInWithPopup(auth, googleProvider);
-      
-      // 登入成功後，主動切換到報名頁面 (App.jsx 的 currentUser 會自動更新)
-      setActiveStep('register');
+      // 🌟 執行彈窗登入
+      // 注意：不使用 await 等待它結束，因為 COOP 報錯可能會讓程式卡在這裡
+      // 我們交給上面的 useEffect 監聽 currentUser 變動來做跳轉
+      signInWithPopup(auth, googleProvider).catch((error) => {
+        console.error("❌ [Auth] 彈窗出錯:", error.code);
+        if (error.code === 'auth/popup-blocked') {
+          alert("彈出視窗被攔截了！請點擊網址列右方的圖示允許彈出視窗。");
+        }
+        setIsLoggingIn(false);
+      });
     } catch (error) {
-      console.error("❌ [Auth] 登入失敗:", error.code, error.message);
-      
-      // 針對常見的彈窗攔截錯誤進行提示
-      if (error.code === 'auth/popup-blocked') {
-        alert("登入視窗被瀏覽器攔截了！請允許彈出視窗後再試一次。");
-      } else {
-        alert("登入驗證發生錯誤，請再試一次！");
-      }
-    } finally {
+      console.error("登入初始化失敗:", error);
       setIsLoggingIn(false);
     }
   };
@@ -66,17 +69,13 @@ export default function InfoView({ setActiveStep, currentUser }) {
       {/* --- Hero Section --- */}
       <div className="relative overflow-hidden rounded-[3rem] bg-slate-900 shadow-2xl border border-slate-800 flex flex-col">
         
-        {/* 🌟 Banner 主視覺圖區塊 */}
+        {/* Banner 主視覺圖區塊 */}
         <div className="relative w-full h-64 md:h-[450px] bg-slate-950 overflow-hidden">
-          
-          {/* Banner 圖片本體 */}
           <img 
             src={mainBanner} 
             alt="多瑪雀王主視覺" 
             className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-1000"
           />
-
-          {/* 漸層遮罩：讓圖片底部自然淡入背景，確保下方標題清晰 */}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-90"></div>
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent"></div>
         </div>
@@ -85,7 +84,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
         <div className="absolute top-2/3 -left-32 w-96 h-96 bg-orange-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-pulse pointer-events-none"></div>
         <div className="absolute bottom-0 -right-32 w-96 h-96 bg-amber-500 rounded-full mix-blend-screen filter blur-[100px] opacity-10 pointer-events-none"></div>
 
-        {/* 文字標題與時間區塊 */}
+        {/* 文字標題區 */}
         <div className="relative z-10 px-6 pb-12 md:pb-16 flex flex-col items-center text-center -mt-16 md:-mt-24">
           <div className="relative mb-6">
             <div className="absolute -inset-4 bg-orange-500/20 blur-2xl rounded-full"></div>
@@ -102,7 +101,6 @@ export default function InfoView({ setActiveStep, currentUser }) {
             <Swords className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />
           </p>
 
-          {/* 🌟 報名期限顯示 */}
           <div className="mb-10 px-6 py-2 bg-red-500/10 border border-red-500/30 rounded-full flex items-center gap-3 animate-pulse">
             <Timer className="w-5 h-5 text-red-400" />
             <span className="text-red-100 text-sm md:text-base font-bold tracking-widest">
@@ -110,7 +108,6 @@ export default function InfoView({ setActiveStep, currentUser }) {
             </span>
           </div>
 
-          {/* 活動時間總覽 */}
           <div className="flex flex-col md:flex-row items-stretch gap-4 w-full max-w-3xl mb-2">
             <div className="flex-1 bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5 flex items-center gap-5">
               <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0 border border-orange-500/30">
@@ -134,7 +131,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
         </div>
       </div>
 
-      {/* --- 賽事獎勵區塊 --- */}
+      {/* --- 賽事獎勵 --- */}
       <div className="space-y-6">
         <div className="flex items-center justify-center gap-3">
           <div className="h-px w-12 bg-gradient-to-r from-transparent to-orange-500/50"></div>
@@ -182,7 +179,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
         </div>
       </div>
 
-      {/* --- Stage Section --- */}
+      {/* --- 賽程階段 --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="group bg-slate-900 rounded-3xl p-8 shadow-xl border-t-4 border-orange-500 border-x border-b border-slate-800 hover:-translate-y-2 transition-all duration-300">
           <div className="flex justify-between items-start mb-6">
@@ -233,7 +230,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
         </div>
       </div>
 
-      {/* --- Score Rule Section --- */}
+      {/* --- 規則說明 --- */}
       <div className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden border border-slate-800">
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
           <div className="w-24 h-24 shrink-0 bg-slate-800 rounded-3xl flex items-center justify-center border-2 border-slate-700 shadow-2xl transform -rotate-3">
@@ -254,7 +251,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
         </div>
       </div>
 
-      {/* --- Registration Info Section --- */}
+      {/* --- 報名須知 --- */}
       <div className="grid md:grid-cols-2 gap-8">
         <div className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-3xl p-8 border border-slate-800 flex gap-6 shadow-xl">
           <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center shrink-0 border border-orange-500/20">
@@ -280,11 +277,10 @@ export default function InfoView({ setActiveStep, currentUser }) {
         </div>
       </div>
 
-      {/* --- Footer CTA --- */}
+      {/* --- CTA 按鈕區 --- */}
       <div className="pt-6 pb-10 text-center relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-orange-500/10 blur-[80px] -z-10"></div>
         
-        {/* 🌟 報名截止後的按鈕樣式切換 */}
         <button 
           onClick={handleAction} 
           disabled={isLoggingIn || (isRegistrationClosed && !currentUser)}
@@ -313,7 +309,6 @@ export default function InfoView({ setActiveStep, currentUser }) {
           )}
         </button>
 
-        {/* 🌟 截止提示訊息 */}
         {isRegistrationClosed && !currentUser && (
           <p className="text-red-400/80 text-sm mt-6 font-bold tracking-widest flex items-center justify-center gap-2">
             <AlertCircle className="w-4 h-4" /> 很抱歉，本屆賽事報名時間已結束。
