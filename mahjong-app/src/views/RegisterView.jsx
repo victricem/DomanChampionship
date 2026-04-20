@@ -14,6 +14,9 @@ export default function RegisterView({
 
   const [searchQuery, setSearchQuery] = useState('');
   
+  // 🌟 新增：控制「清空資料」自訂對話框的狀態
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  
   const myRegistration = players.find(p => p.uid === currentUser?.uid);
 
   const startEditing = () => {
@@ -32,8 +35,14 @@ export default function RegisterView({
     player.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // 🌟 新增：確認清空資料的執行函式
+  const confirmReset = () => {
+    setShowResetConfirm(false); // 先關閉彈出層
+    handleResetAll(); // 執行原本父層傳進來的清空功能
+  };
+
   return (
-    <main className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <main className="max-w-4xl mx-auto space-y-6 animate-fade-in relative">
       
       {/* 區塊 1：一般使用者報名區 */}
       <div className="bg-slate-900 rounded-3xl p-6 md:p-8 shadow-xl border border-slate-800">
@@ -181,10 +190,9 @@ export default function RegisterView({
             )}
           </div>
           
-          {/* 👉 修改這裡：將清空資料按鈕與產生賽程按鈕並排，並增加視覺差異 */}
           <div className="mt-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-slate-800/50 pt-6">
             <button 
-              onClick={handleResetAll} 
+              onClick={() => setShowResetConfirm(true)} // 👉 修改這裡：點擊後改為開啟彈出層
               className="w-full md:w-auto text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 font-bold py-2.5 px-5 rounded-xl transition-colors flex items-center justify-center text-sm"
               title="刪除所有報名資料與賽程"
             >
@@ -198,9 +206,52 @@ export default function RegisterView({
               前往賽程配對 <ChevronRight className="ml-1 w-5 h-5" />
             </button>
           </div>
-
         </div>
       )}
+
+      {/* 🌟 新增：專屬原生網頁對話框 (Custom Modal) */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          {/* 背景模糊遮罩 */}
+          <div 
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-fade-in"
+            onClick={() => setShowResetConfirm(false)}
+          ></div>
+          
+          {/* 對話框本體 */}
+          <div className="relative bg-slate-900 border border-red-900/50 p-8 rounded-[2rem] max-w-md w-full shadow-[0_0_50px_rgba(220,38,38,0.15)] animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              
+              <h3 className="text-2xl font-black text-white mb-3">危險操作警告</h3>
+              <p className="text-slate-400 text-sm leading-relaxed mb-2 font-medium">
+                您確定要清空 <strong className="text-red-400">所有報名資料與賽程</strong> 嗎？
+              </p>
+              <p className="text-slate-500 text-xs mb-8">
+                此動作無法復原，通常僅在舉辦「下一屆賽事」時使用。
+              </p>
+              
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 hover:text-white transition-colors"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={confirmReset} // 👉 點擊確認後執行刪除
+                  className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 shadow-lg shadow-red-600/20 transition-all flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" /> 確認清空
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
