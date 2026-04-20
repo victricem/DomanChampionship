@@ -1,22 +1,16 @@
 import React, { useState } from 'react';
-// 👉 頂部引入新增 AlertTriangle
-import { UserPlus, Plus, Cat, AlertCircle, CheckCircle2, Check, Trash2, ChevronRight, ShieldAlert, Edit2, Save, X, Search, AlertTriangle } from 'lucide-react';
+import { UserPlus, Plus, Cat, AlertCircle, CheckCircle2, Check, Trash2, ChevronRight, ShieldAlert, Edit2, Save, X, Search, AlertTriangle, AlertOctagon } from 'lucide-react';
 
 export default function RegisterView({ 
   players, currentUser, isAdmin, handleSelfRegister, newPlayerName, setNewPlayerName, handleAddPlayer,
   handleApprovePlayer, handleDeletePlayer, setActiveStep, handleUpdatePlayerName,
-  handleResetAll // 👉 記得接收這個 function
+  handleResetAll 
 }) {
   const [characterName, setCharacterName] = useState('');
-  
   const [isEditing, setIsEditing] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
-
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // 🌟 新增：控制「清空資料」自訂對話框的狀態
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  
+  const [resetStep, setResetStep] = useState(0);
   const myRegistration = players.find(p => p.uid === currentUser?.uid);
 
   const startEditing = () => {
@@ -35,10 +29,9 @@ export default function RegisterView({
     player.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // 🌟 新增：確認清空資料的執行函式
   const confirmReset = () => {
-    setShowResetConfirm(false); // 先關閉彈出層
-    handleResetAll(); // 執行原本父層傳進來的清空功能
+    setResetStep(0);
+    handleResetAll();
   };
 
   return (
@@ -190,16 +183,14 @@ export default function RegisterView({
             )}
           </div>
           
-          {/* 👉 修改這裡：全新的底部按鈕佈局與 Danger Zone */}
           <div className="mt-8 flex flex-col md:flex-row justify-between items-end gap-6 border-t border-slate-800/50 pt-6">
             
-            {/* ⚠️ 危險操作區塊 (Danger Zone) */}
             <div className="w-full md:w-auto flex flex-col items-start gap-2">
               <span className="text-[10px] text-red-500/70 font-black tracking-widest uppercase ml-2 flex items-center gap-1">
                 <ShieldAlert className="w-3 h-3" /> Danger Zone
               </span>
               <button 
-                onClick={() => setShowResetConfirm(true)}
+                onClick={() => setResetStep(1)} // 👉 點擊開啟第一層確認
                 className="w-full md:w-auto group relative flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-bold text-red-400 bg-red-950/30 border border-red-900/50 hover:border-red-500 hover:bg-red-600 hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(220,38,38,0.1)] hover:shadow-[0_0_20px_rgba(220,38,38,0.4)]"
                 title="刪除所有報名資料與賽程"
               >
@@ -217,45 +208,81 @@ export default function RegisterView({
         </div>
       )}
 
-      {/* 🌟 專屬原生網頁對話框 (Custom Modal) */}
-      {showResetConfirm && (
+      {/* 🌟 雙重原生網頁對話框 (Custom Double Modal) */}
+      {resetStep > 0 && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-          {/* 背景模糊遮罩 */}
           <div 
             className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-fade-in"
-            onClick={() => setShowResetConfirm(false)}
+            onClick={() => setResetStep(0)}
           ></div>
           
-          {/* 對話框本體 */}
-          <div className="relative bg-slate-900 border border-red-900/50 p-8 rounded-[2rem] max-w-md w-full shadow-[0_0_50px_rgba(220,38,38,0.15)] animate-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20">
-                <AlertTriangle className="w-8 h-8 text-red-500" />
+          <div className={`relative bg-slate-900 border ${resetStep === 2 ? 'border-red-600' : 'border-red-900/50'} p-8 rounded-[2rem] max-w-md w-full shadow-[0_0_50px_rgba(220,38,38,0.15)] animate-in zoom-in-95 duration-200`}>
+            
+            {/* ====== 第 1 層確認 ====== */}
+            {resetStep === 1 && (
+              <div className="flex flex-col items-center text-center animate-fade-in">
+                <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 border border-red-500/20">
+                  <AlertTriangle className="w-8 h-8 text-red-500" />
+                </div>
+                
+                <h3 className="text-2xl font-black text-white mb-3">危險操作警告</h3>
+                <p className="text-slate-400 text-sm leading-relaxed mb-2 font-medium">
+                  您確定要清空 <strong className="text-red-400">所有報名資料與賽程</strong> 嗎？
+                </p>
+                <p className="text-slate-500 text-xs mb-8">
+                  此動作通常僅在舉辦「下一屆新賽事」時使用。
+                </p>
+                
+                <div className="flex gap-3 w-full">
+                  <button 
+                    onClick={() => setResetStep(0)}
+                    className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 hover:text-white transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    onClick={() => setResetStep(2)} // 👉 點擊進入第二層
+                    className="flex-1 py-3 rounded-xl bg-red-600/80 text-white font-bold hover:bg-red-500 transition-colors flex items-center justify-center"
+                  >
+                    下一步
+                  </button>
+                </div>
               </div>
-              
-              <h3 className="text-2xl font-black text-white mb-3">危險操作警告</h3>
-              <p className="text-slate-400 text-sm leading-relaxed mb-2 font-medium">
-                您確定要清空 <strong className="text-red-400">所有報名資料與賽程</strong> 嗎？
-              </p>
-              <p className="text-slate-500 text-xs mb-8">
-                此動作無法復原，通常僅在舉辦「下一屆賽事」時使用。
-              </p>
-              
-              <div className="flex gap-3 w-full">
-                <button 
-                  onClick={() => setShowResetConfirm(false)}
-                  className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 hover:text-white transition-colors"
-                >
-                  取消
-                </button>
-                <button 
-                  onClick={confirmReset} // 👉 點擊確認後執行刪除
-                  className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 shadow-lg shadow-red-600/20 transition-all flex items-center justify-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" /> 確認清空
-                </button>
+            )}
+
+            {/* ====== 第 2 層最終確認 (按鈕左右顛倒) ====== */}
+            {resetStep === 2 && (
+              <div className="flex flex-col items-center text-center animate-in slide-in-from-right-8">
+                <div className="w-20 h-20 bg-red-600 rounded-3xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(220,38,38,0.5)] animate-pulse">
+                  <AlertOctagon className="w-10 h-10 text-white" />
+                </div>
+                
+                <h3 className="text-2xl font-black text-red-500 mb-3">【最終確認】</h3>
+                <p className="text-slate-300 text-sm leading-relaxed mb-2 font-bold">
+                  資料刪除後將 <span className="text-red-400 underline underline-offset-4 decoration-wavy">完全無法復原</span>！
+                </p>
+                <p className="text-slate-500 text-xs mb-8">
+                  你確定要徹底清空整個資料庫嗎？
+                </p>
+                
+                <div className="flex gap-3 w-full">
+                  {/* 🌟 按鈕左右顛倒：紅色確認在左邊，取消在右邊 */}
+                  <button 
+                    onClick={confirmReset} // 👉 點擊後真正執行刪除
+                    className="flex-1 py-3 rounded-xl bg-red-600 text-white font-black hover:bg-red-500 shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-5 h-5" /> 徹底清空
+                  </button>
+                  <button 
+                    onClick={() => setResetStep(0)}
+                    className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 hover:text-white transition-colors"
+                  >
+                    取消
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
           </div>
         </div>
       )}
