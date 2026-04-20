@@ -104,7 +104,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
                 <Trophy className="w-6 h-6 text-amber-400" />
               </div>
               <div className="text-left">
-                <p className="text-amber-400 text-xs font-bold uppercase tracking-tighter mb-1">Day 2 決賽 (半莊戰)</p>
+                <p className="text-amber-400 text-xs font-bold uppercase tracking-tighter mb-1">Day 2 複賽/決賽 (半莊戰)</p>
                 <p className="text-white text-xl font-black italic">5/31 <span className="text-sm not-italic font-bold text-slate-300">(日)</span> 20:00</p>
               </div>
             </div>
