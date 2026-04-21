@@ -96,7 +96,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
               </div>
               <div className="text-left">
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-tighter mb-1">Day 1 初賽 (東風戰)</p>
-                <p className="text-white text-xl font-black italic">5/30 <span className="text-sm not-italic font-bold text-slate-300">(六)</span> 20:00</p>
+                <p className="text-white text-xl font-black italic">5/30 <span className="text-sm not-italic font-bold text-slate-300">(六)</span> 21:00</p>
               </div>
             </div>
             <div className="flex-1 bg-slate-900/60 backdrop-blur-xl border border-amber-500/20 rounded-2xl p-5 flex items-center gap-5 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
@@ -105,7 +105,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
               </div>
               <div className="text-left">
                 <p className="text-amber-400 text-xs font-bold uppercase tracking-tighter mb-1">Day 2 複賽/決賽 (半莊戰)</p>
-                <p className="text-white text-xl font-black italic">5/31 <span className="text-sm not-italic font-bold text-slate-300">(日)</span> 20:00</p>
+                <p className="text-white text-xl font-black italic">5/31 <span className="text-sm not-italic font-bold text-slate-300">(日)</span> 21:00</p>
               </div>
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
           </div>
           <h3 className="text-2xl font-black text-slate-100 mb-2">STAGE 1 : 初賽</h3>
           <p className="text-orange-500/90 text-sm font-bold mb-4 flex items-center gap-1.5">
-            <Clock className="w-4 h-4" /> 5/30 (六) 20:00
+            <Clock className="w-4 h-4" /> 5/30 (六) 21:00
           </p>
           <p className="text-slate-400 leading-relaxed font-medium">
             初賽採用 <strong className="text-slate-100">東風戰(帶食斷)</strong>，速戰速決。每位選手須完成 3 局，總點數排名前 <strong className="text-orange-400 text-lg">16 強</strong> 晉級。
@@ -186,7 +186,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
           </div>
           <h3 className="text-2xl font-black text-slate-100 mb-2">STAGE 2 : 16強</h3>
           <p className="text-amber-500/90 text-sm font-bold mb-4 flex items-center gap-1.5">
-            <Clock className="w-4 h-4" /> 5/31 (日) 20:00
+            <Clock className="w-4 h-4" /> 5/31 (日) 21:00
           </p>
           <p className="text-slate-400 leading-relaxed font-medium">
             複賽改為 <strong className="text-slate-100">半莊戰(帶食斷)</strong>。4 桌分組廝殺，僅有 <strong className="text-amber-400 text-lg">該桌第 1 名</strong> 能獲得決賽門票。
@@ -238,7 +238,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
           <div>
             <h4 className="font-black text-xl text-slate-100 mb-2">參賽保證金</h4>
             <p className="text-slate-400 leading-relaxed font-medium">
-              報名需預繳 <strong className="text-orange-400">10 萬 Gil</strong> 保證金。該費用將於選手<strong className="text-white">順利完賽後全額發還</strong>；若無故缺席或未完成賽事，保證金將<strong className="text-red-400">不予退還</strong>。
+              報名需預繳 <strong className="text-orange-400">20 萬 Gil</strong> 保證金。該費用將於選手<strong className="text-white">順利完賽後全額發還</strong>；若無故缺席或未完成賽事，保證金將<strong className="text-red-400">不予退還</strong>。
             </p>
           </div>
         </div>
