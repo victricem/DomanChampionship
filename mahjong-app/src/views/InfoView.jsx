@@ -249,7 +249,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
           <div>
             <h4 className="font-black text-xl text-slate-100 mb-2">報名審核</h4>
             <p className="text-slate-400 leading-relaxed font-medium">
-              送出資料後需經管理員審核並收取保證金，狀態轉為「報名成功」後才正式取得資格。
+              送出資料後需經主辦或協辦方會長審核並收取保證金，狀態轉為「報名成功」後才正式取得資格。
             </p>
           </div>
         </div>
