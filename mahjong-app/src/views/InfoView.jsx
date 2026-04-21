@@ -215,7 +215,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
           <div>
             <h4 className="font-black text-xl text-slate-100 mb-2">參賽保證金</h4>
             <p className="text-slate-400 leading-relaxed font-medium">
-              報名需預繳 <strong className="text-orange-400">20 萬 Gil</strong> 保證金。該費用將於選手<strong className="text-white">順利完賽後全額發還</strong>；若無故缺席或未完成賽事，保證金將<strong className="text-red-400">不予退還</strong>。
+              報名需預繳 <strong className="text-orange-400">10 萬 Gil</strong> 保證金。該費用將於選手<strong className="text-white">順利完賽後全額發還</strong>；若無故缺席或未完成賽事，保證金將<strong className="text-red-400">不予退還</strong>。
             </p>
           </div>
         </div>
