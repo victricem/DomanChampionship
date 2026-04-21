@@ -112,7 +112,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
             <p className="text-amber-500 font-black tracking-[0.3em] text-sm mb-2 uppercase">Champion</p>
             <h4 className="text-2xl font-black text-white mb-3">第一名</h4>
             <div className="flex items-center justify-center gap-2">
-              <span className="text-4xl font-black text-white italic">300</span>
+              <span className="text-4xl font-black text-white italic">500</span>
               <span className="text-xl font-bold text-amber-400/80">萬 Gil</span>
             </div>
           </div>
@@ -123,7 +123,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
             <p className="text-slate-400 font-black tracking-[0.3em] text-sm mb-2 uppercase">Runner-up</p>
             <h4 className="text-2xl font-black text-white mb-3">第二名</h4>
             <div className="flex items-center justify-center gap-2">
-              <span className="text-4xl font-black text-white italic">200</span>
+              <span className="text-4xl font-black text-white italic">300</span>
               <span className="text-xl font-bold text-slate-400">萬 Gil</span>
             </div>
           </div>
