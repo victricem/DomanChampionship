@@ -44,7 +44,7 @@ export function useTournament() {
       setCurrentUser(user);
       if (user) {
         try {
-          const adminEmails = ['tony80709@yahoo.com.tw', 's85543s2169@gmail.com'];
+          const adminEmails = ['tony80709@yahoo.com.tw', 's85543s2169@gmail.com', 'pig970902@gmail.com'];
           const userEmail = user.email ? user.email.toLowerCase() : '';
           await getDoc(doc(db, 'settings', 'adminCheck'));
           if (adminEmails.includes(userEmail)) {
