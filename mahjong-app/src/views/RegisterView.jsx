@@ -18,6 +18,9 @@ export default function RegisterView({
   const isFullyRegistered = myRegistration && myRegistration.status !== 'visitor';
   const isVisitorOnly = myRegistration && myRegistration.status === 'visitor';
 
+  // 🌟 取得當前管理員的顯示名稱 (優先使用遊戲暱稱，沒有則用 Google 名稱，再沒有則顯示管理員)
+  const currentAdminName = myRegistration?.name || currentUser?.displayName || '系統管理員';
+
   useEffect(() => {
     if (myRegistration) {
       setCharacterName(myRegistration.name);
@@ -50,7 +53,7 @@ export default function RegisterView({
   return (
     <main className="max-w-4xl mx-auto space-y-6 animate-fade-in relative">
       
-      {/* 區塊 1：使用者報名區 */}
+      {/* 區塊 1：使用者報名區 (一般玩家只看得到這裡) */}
       <div className="bg-slate-900 rounded-3xl p-6 md:p-8 shadow-xl border border-slate-800">
         <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
           <h2 className="text-2xl font-bold text-slate-100 flex items-center">
@@ -66,7 +69,6 @@ export default function RegisterView({
 
         {!isFullyRegistered ? (
           <div className="space-y-4">
-            {/* 🌟 修正文案：拿掉「可以先設定」的錯誤引導，明確告知是正式報名 */}
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
               <p className="text-blue-100/80 text-sm leading-relaxed">
@@ -131,7 +133,7 @@ export default function RegisterView({
         )}
       </div>
 
-      {/* 區塊 2：管理員專屬後台 */}
+      {/* 區塊 2：管理員專屬後台 (一般玩家看不到) */}
       {isAdmin && (
         <div className="bg-slate-900 rounded-3xl p-6 md:p-8 shadow-xl border border-amber-500/30 relative overflow-hidden">
           <div className="absolute top-0 right-0 bg-amber-500 text-slate-900 text-xs font-black px-4 py-1 rounded-bl-xl">Admin Only</div>
@@ -176,11 +178,25 @@ export default function RegisterView({
                     
                     <div className="flex items-center gap-2">
                       {player.status === 'pending' ? (
-                        <button onClick={() => handleApprovePlayer(player.id)} className="text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg font-bold text-xs flex items-center transition-colors">
+                        /* 🌟 傳入當前管理員的名字給核准函式 */
+                        <button 
+                          onClick={() => handleApprovePlayer(player.id, currentAdminName)} 
+                          className="text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg font-bold text-xs flex items-center transition-colors"
+                        >
                           <Check className="w-4 h-4 mr-1" /> 核准
                         </button>
                       ) : (
-                        <span className="text-xs font-bold text-emerald-500 px-3 py-1.5 flex items-center"><CheckCircle2 className="w-4 h-4 mr-1"/> 已核准</span>
+                        /* 🌟 顯示誰核准了這位玩家 */
+                        <div className="flex flex-col items-end mr-2">
+                          <span className="text-xs font-bold text-emerald-500 px-3 py-1 flex items-center">
+                            <CheckCircle2 className="w-4 h-4 mr-1"/> 已核准
+                          </span>
+                          {player.approvedBy && (
+                            <span className="text-[10px] text-slate-500 font-medium mr-3 mt-0.5">
+                              審核人: {player.approvedBy}
+                            </span>
+                          )}
+                        </div>
                       )}
                       <button onClick={() => handleDeletePlayer(player.id)} className="text-slate-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>

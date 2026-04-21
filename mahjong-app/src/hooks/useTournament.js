@@ -184,9 +184,13 @@ export function useTournament() {
     } catch (error) { showToast("權限不足！", "error"); }
   };
 
-  const handleApprovePlayer = async (id) => {
+  // 🌟 [修改] 接收 adminName 並寫入資料庫
+  const handleApprovePlayer = async (id, adminName) => {
     try {
-      await updateDoc(doc(db, 'players', String(id)), { status: 'active' });
+      await updateDoc(doc(db, 'players', String(id)), { 
+        status: 'active',
+        approvedBy: adminName // 🌟 紀錄是哪位管理員按下的
+      });
       showToast("已核准參賽資格！", "success");
     } catch (error) { showToast("核准失敗！", "error"); }
   };
