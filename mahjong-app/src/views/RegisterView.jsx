@@ -11,14 +11,9 @@ export default function RegisterView({
   const [editNameValue, setEditNameValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [resetStep, setResetStep] = useState(0);
-  
   const myRegistration = players.find(p => p.uid === currentUser?.uid);
-  
-  // 判定是否已經「正式報名」 (狀態不是 visitor 才算報名)
   const isFullyRegistered = myRegistration && myRegistration.status !== 'visitor';
   const isVisitorOnly = myRegistration && myRegistration.status === 'visitor';
-
-  // 🌟 取得當前管理員的顯示名稱 (優先使用遊戲暱稱，沒有則用 Google 名稱，再沒有則顯示管理員)
   const currentAdminName = myRegistration?.name || currentUser?.displayName || '系統管理員';
 
   useEffect(() => {
@@ -52,8 +47,6 @@ export default function RegisterView({
 
   return (
     <main className="max-w-4xl mx-auto space-y-6 animate-fade-in relative">
-      
-      {/* 區塊 1：使用者報名區 (一般玩家只看得到這裡) */}
       <div className="bg-slate-900 rounded-3xl p-6 md:p-8 shadow-xl border border-slate-800">
         <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
           <h2 className="text-2xl font-bold text-slate-100 flex items-center">
@@ -93,7 +86,6 @@ export default function RegisterView({
             </form>
           </div>
         ) : (
-          /* 已報名的顯示狀態 */
           <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex-1">
               <p className="text-sm text-slate-400 mb-1">您的參賽角色</p>
@@ -117,7 +109,6 @@ export default function RegisterView({
                 </div>
               )}
             </div>
-            
             <div className="mt-4 md:mt-0">
               {myRegistration.status === 'pending' ? (
                 <span className="flex items-center text-sm font-bold bg-amber-500/10 border border-amber-500/30 text-amber-400 px-4 py-2 rounded-xl">
@@ -132,8 +123,6 @@ export default function RegisterView({
           </div>
         )}
       </div>
-
-      {/* 區塊 2：管理員專屬後台 (一般玩家看不到) */}
       {isAdmin && (
         <div className="bg-slate-900 rounded-3xl p-6 md:p-8 shadow-xl border border-amber-500/30 relative overflow-hidden">
           <div className="absolute top-0 right-0 bg-amber-500 text-slate-900 text-xs font-black px-4 py-1 rounded-bl-xl">Admin Only</div>
@@ -144,7 +133,6 @@ export default function RegisterView({
               正式報名：{players.filter(p => p.status !== 'visitor').length} 人
             </div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <form onSubmit={handleAddPlayer} className="flex gap-2">
               <input type="text" value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder="管理員代填玩家 ID..." className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-amber-500 text-sm" />
@@ -152,7 +140,6 @@ export default function RegisterView({
                 <Plus className="w-4 h-4 mr-1" /> 代為新增
               </button>
             </form>
-
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="w-4 h-4 text-slate-500" />
@@ -160,7 +147,6 @@ export default function RegisterView({
               <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="搜尋正式報名者..." className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-slate-200 focus:outline-none focus:border-emerald-500 text-sm" />
             </div>
           </div>
-          
           <div className="bg-slate-950/50 rounded-2xl border border-slate-800 overflow-hidden min-h-[200px]">
             {filteredPlayers.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full py-10 text-slate-600">
@@ -178,7 +164,6 @@ export default function RegisterView({
                     
                     <div className="flex items-center gap-2">
                       {player.status === 'pending' ? (
-                        /* 🌟 傳入當前管理員的名字給核准函式 */
                         <button 
                           onClick={() => handleApprovePlayer(player.id, currentAdminName)} 
                           className="text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg font-bold text-xs flex items-center transition-colors"
@@ -186,7 +171,6 @@ export default function RegisterView({
                           <Check className="w-4 h-4 mr-1" /> 核准
                         </button>
                       ) : (
-                        /* 🌟 顯示誰核准了這位玩家 */
                         <div className="flex flex-col items-end mr-2">
                           <span className="text-xs font-bold text-emerald-500 px-3 py-1 flex items-center">
                             <CheckCircle2 className="w-4 h-4 mr-1"/> 已核准
@@ -205,7 +189,6 @@ export default function RegisterView({
               </ul>
             )}
           </div>
-          
           <div className="mt-8 flex flex-col md:flex-row justify-between items-end gap-6 border-t border-slate-800/50 pt-6">
             <div className="w-full md:w-auto flex flex-col items-start gap-2">
               <span className="text-[10px] text-red-500/70 font-black tracking-widest uppercase ml-2 flex items-center gap-1">
@@ -215,7 +198,6 @@ export default function RegisterView({
                 <AlertTriangle className="w-4 h-4 mr-2" /> 清空所有賽事資料
               </button>
             </div>
-            
             <button 
               onClick={() => { if (players.filter(p => p.status === 'active').length < 4) { alert('至少需要 4 名已核准的參賽者！'); return; } setActiveStep('matchmaking'); }} 
               className="w-full md:w-auto bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center"
@@ -225,8 +207,6 @@ export default function RegisterView({
           </div>
         </div>
       )}
-
-      {/* 雙重確認對話框 (Reset Modal) */}
       {resetStep > 0 && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onClick={() => setResetStep(0)}></div>

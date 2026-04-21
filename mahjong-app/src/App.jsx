@@ -8,22 +8,17 @@ import RegisterView from './views/RegisterView';
 import MatchmakingView from './views/MatchmakingView';
 import TournamentView from './views/TournamentView';
 import BracketView from './views/BracketView';
-// 🌟 引入 AlertTriangle 供確認視窗使用
 import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
-
 export default function App() {
   const tournamentState = useTournament();
   
   const { 
     toast, currentUser, players, isAdmin, isRegistered,
     handleQuickSetName, handleUpdatePlayerName,
-    confirmModal, closeConfirm // 🌟 解構出對話框狀態
+    confirmModal, closeConfirm
   } = tournamentState;
-
   return (
     <div className="flex flex-col min-h-screen bg-[#0A0F1C] text-slate-200 font-sans selection:bg-orange-500/30 relative">
-      
-      {/* 全域 Toast (提示訊息) */}
       {toast.show && (
         <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-[100] animate-fade-in flex items-center shadow-2xl rounded-2xl px-6 py-3 border border-slate-700 bg-slate-900/95 backdrop-blur text-slate-100 min-w-[300px] justify-center">
           {toast.type === 'error' ? (
@@ -34,8 +29,6 @@ export default function App() {
           <span className="font-bold tracking-wide">{toast.message}</span>
         </div>
       )}
-
-      {/* 🌟 [新增] 全域客製化確認對話框 (取代 window.confirm) */}
       {confirmModal.isOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm animate-fade-in" onClick={closeConfirm}></div>
@@ -57,8 +50,8 @@ export default function App() {
                 </button>
                 <button 
                   onClick={() => {
-                    confirmModal.action(); // 執行傳入的邏輯
-                    closeConfirm(); // 關閉視窗
+                    confirmModal.action();
+                    closeConfirm();
                   }}
                   className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold transition-colors shadow-lg shadow-orange-600/20"
                 >
@@ -69,8 +62,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {/* Navbar 元件 */}
       <Navbar 
         currentUser={currentUser} 
         handleLogout={tournamentState.handleLogout} 
@@ -79,9 +70,7 @@ export default function App() {
         handleQuickSetName={handleQuickSetName}
         handleUpdatePlayerName={handleUpdatePlayerName}
       />
-      
       <div className="flex-grow pt-4 px-4 md:px-8 max-w-7xl mx-auto w-full">
-        
         <NavigationTabs 
           activeStep={tournamentState.activeStep} 
           setActiveStep={tournamentState.setActiveStep} 
@@ -89,7 +78,6 @@ export default function App() {
           isAdmin={isAdmin}
           isRegistered={isRegistered}
         />
-
         {tournamentState.activeStep === 'info' && (
           <InfoView 
             setActiveStep={tournamentState.setActiveStep} 
@@ -101,7 +89,6 @@ export default function App() {
         {tournamentState.activeStep === 'tournament' && <TournamentView {...tournamentState} />}
         {tournamentState.activeStep === 'bracket' && <BracketView {...tournamentState} />}
       </div>
-
       <Footer />
     </div>
   );

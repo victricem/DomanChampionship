@@ -1,6 +1,5 @@
 import React from 'react';
 import { Network, Crown, ChevronRight, Trophy, Cat } from 'lucide-react';
-
 export default function BracketView({ 
   bracket, sortedPlayers, handleGenerateBracket, handleAdvanceToFinals, handleSetChampion, isAdmin 
 }) {
@@ -14,15 +13,12 @@ export default function BracketView({
             {isAdmin ? '請於各桌選出勝出者晉級決賽！' : '請為晉級的選手加油！'}
           </p>
         </div>
-        
-        {/* 👉 只有管理員能看到產生晉級表的按鈕 */}
         {isAdmin && (
           <button onClick={() => handleGenerateBracket(false)} className="bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-colors flex items-center">
             <Network className="w-5 h-5 mr-2" /> {bracket ? '重新擷取 16 強名單' : '擷取積分前 16 強'}
           </button>
         )}
       </div>
-
       {!bracket ? (
         <div className="flex flex-col items-center justify-center py-24 text-slate-600 bg-slate-950/50 rounded-2xl border-2 border-dashed border-slate-800">
           <Crown className="w-20 h-20 mb-4 opacity-20" />
@@ -46,7 +42,7 @@ export default function BracketView({
                       <button 
                         key={pIdx} 
                         onClick={() => isAdmin && handleAdvanceToFinals(index, p)}
-                        disabled={!isAdmin || !p} // 👉 鎖定非管理員的操作
+                        disabled={!isAdmin || !p}
                         className={`w-full text-left px-3 py-2 rounded-lg font-bold text-sm transition-all border flex items-center justify-between
                           ${!p ? 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed' : 
                             semi.winner?.id === p?.id 
@@ -54,7 +50,6 @@ export default function BracketView({
                               : `bg-slate-800 border-slate-700 text-slate-300 ${isAdmin ? 'hover:border-orange-500/50 hover:bg-slate-700 group cursor-pointer' : 'cursor-default'}`}`}
                       >
                         <span>{p ? p.name : '空缺'}</span>
-                        {/* 只有管理員在 Hover 時會看到「晉級決賽」提示 */}
                         {isAdmin && semi.winner?.id !== p?.id && p && <span className="text-orange-400 opacity-0 group-hover:opacity-100 text-xs">晉級決賽</span>}
                         {semi.winner?.id === p?.id && <ChevronRight className="w-4 h-4 text-white" />}
                       </button>
@@ -63,11 +58,9 @@ export default function BracketView({
                 </div>
               ))}
             </div>
-
             <div className="w-8 flex flex-col justify-center items-center opacity-30">
               <div className="h-full border-r-2 border-dashed border-slate-600 w-1/2"></div>
             </div>
-
             <div className="flex-1 flex flex-col justify-center relative z-10">
               <div className="text-center font-black text-xl text-amber-500 mb-6 border-b border-slate-800 pb-2 uppercase tracking-widest drop-shadow-sm">4強 總決賽</div>
               <div className={`bg-slate-950/80 rounded-2xl border-2 transition-all overflow-hidden ${bracket.finals.winner ? 'border-amber-500/70 shadow-[0_0_30px_rgba(245,158,11,0.2)]' : 'border-slate-700 shadow-lg'}`}>
@@ -79,7 +72,7 @@ export default function BracketView({
                     <button 
                       key={pIdx} 
                       onClick={() => isAdmin && handleSetChampion(p)}
-                      disabled={!isAdmin || !p} // 👉 鎖定非管理員的操作
+                      disabled={!isAdmin || !p}
                       className={`w-full text-left px-4 py-3 rounded-xl font-bold text-base transition-all border flex items-center justify-between
                         ${!p ? 'bg-slate-900 border-dashed border-slate-700 text-slate-600 cursor-not-allowed' : 
                           bracket.finals.winner?.id === p?.id 
@@ -92,7 +85,6 @@ export default function BracketView({
                         </span>
                         {p ? p.name : '等待晉級...'}
                       </div>
-                      {/* 只有管理員在 Hover 時會看到「設為冠軍」提示 */}
                       {isAdmin && bracket.finals.winner?.id !== p?.id && p && <span className="text-amber-400 opacity-0 group-hover:opacity-100 text-sm">設為冠軍 🏆</span>}
                       {bracket.finals.winner?.id === p?.id && <Crown className="w-5 h-5 text-white" />}
                     </button>
@@ -100,20 +92,16 @@ export default function BracketView({
                 </div>
               </div>
             </div>
-
             <div className="w-8 flex flex-col justify-center items-center opacity-30">
               <div className="h-4 border-b-2 border-dashed border-slate-600 w-full"></div>
             </div>
-
             <div className="flex-1 flex flex-col justify-center relative z-10">
               <div className="text-center font-black text-xl text-orange-500 mb-6 border-b border-slate-800 pb-2 uppercase tracking-widest drop-shadow-sm">雀王誕生</div>
               <div className="bg-gradient-to-b from-orange-600 to-amber-600 rounded-3xl p-1 shadow-2xl relative transform hover:scale-105 transition-transform duration-500">
                 {bracket.finals.winner && <div className="absolute inset-0 bg-white opacity-20 blur-xl rounded-full animate-pulse"></div>}
-                
                 <div className="bg-slate-950 rounded-[22px] p-8 flex flex-col items-center text-center h-full border border-orange-500/30 relative overflow-hidden">
                   <Cat className="absolute -bottom-8 -left-8 w-40 h-40 text-orange-500/10 -rotate-12" />
                   <Crown className={`w-24 h-24 mb-4 drop-shadow-md z-10 transition-colors duration-500 ${bracket.finals.winner ? 'text-amber-400' : 'text-slate-700'}`} />
-                  
                   <div className="z-10 w-full">
                     <p className="text-sm font-bold text-orange-500 mb-2 tracking-widest">第一屆 多瑪雀王</p>
                     {bracket.finals.winner ? (

@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* 剛才提到的自訂動畫與捲軸可以寫在下面 */
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -14,7 +13,6 @@
   }
 }
 
-/* 由於 v4 預設不包含 fade-in，手動補上 */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }

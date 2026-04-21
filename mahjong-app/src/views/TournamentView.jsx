@@ -4,19 +4,28 @@ import { Medal, ChevronRight, History, Cat, Undo2, Lock, Timer } from 'lucide-re
 export default function TournamentView({ 
   sortedPlayers, matches, handleGenerateBracket, handleUndoSpecificMatch, setActiveStep, isAdmin 
 }) {
-  // 🌟 新增：報名截止狀態判定
   const [isRegistrationClosed, setIsRegistrationClosed] = useState(false);
   const REGISTRATION_DEADLINE = new Date('2026-05-29T21:00:00+08:00').getTime();
 
   useEffect(() => {
-    const checkDeadline = () => {
-      const now = new Date().getTime();
-      if (now >= REGISTRATION_DEADLINE) {
-        setIsRegistrationClosed(true);
+    const checkDeadline = async () => {
+      try {
+        const response = await fetch('https://worldtimeapi.org/api/timezone/Asia/Taipei');
+        if (!response.ok) throw new Error('API fetching failed');
+        const data = await response.json();
+        const realTimeNow = new Date(data.datetime).getTime();
+        if (realTimeNow >= REGISTRATION_DEADLINE) {
+          setIsRegistrationClosed(true);
+        }
+      } catch (error) {
+        const localNow = new Date().getTime();
+        if (localNow >= REGISTRATION_DEADLINE) {
+          setIsRegistrationClosed(true);
+        }
       }
     };
+
     checkDeadline();
-    // 每分鐘自動檢查，時間一到自動解鎖排行榜
     const timer = setInterval(checkDeadline, 60000);
     return () => clearInterval(timer);
   }, []);
@@ -24,7 +33,6 @@ export default function TournamentView({
   return (
     <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in">
       
-      {/* 👉 左側：排行榜看板。如果是管理員佔 8 格，一般玩家則佔滿 12 格並置中 */}
       <div className={`${isAdmin ? 'lg:col-span-8' : 'lg:col-span-12 max-w-5xl mx-auto w-full'} bg-slate-900 rounded-3xl p-6 md:p-8 shadow-xl border border-slate-800 flex flex-col`}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-slate-100 flex items-center">
@@ -43,7 +51,6 @@ export default function TournamentView({
         
         <div className="overflow-x-auto rounded-2xl border border-slate-800 flex-1 flex flex-col relative min-h-[300px]">
           
-          {/* 🌟 核心防護：未截止且非管理員時，顯示上鎖畫面 */}
           {!isRegistrationClosed && !isAdmin ? (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 text-center">
               <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6 border border-slate-700 shadow-inner">
@@ -55,7 +62,6 @@ export default function TournamentView({
               </p>
             </div>
           ) : (
-            /* 報名截止或管理員登入時，顯示完整表格 */
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-800 text-slate-300 text-sm border-b border-slate-700">
@@ -94,7 +100,6 @@ export default function TournamentView({
           )}
         </div>
         
-        {/* 僅限管理員可見的晉級操作區塊 */}
         {isAdmin && (
           <div className="mt-6 p-5 bg-slate-800/50 rounded-2xl border border-slate-700 flex flex-col md:flex-row justify-between items-center shadow-sm gap-4">
             <div className="text-sm text-slate-400">
@@ -111,7 +116,6 @@ export default function TournamentView({
         )}
       </div>
 
-      {/* 👉 右側：結算紀錄。只有管理員看得到這個大區塊 */}
       {isAdmin && (
         <div className="lg:col-span-4">
           <div className="bg-slate-900 rounded-3xl p-6 shadow-xl border border-slate-800 sticky top-28">
@@ -135,7 +139,6 @@ export default function TournamentView({
                       
                       <div className="flex items-center gap-3">
                         <span>{match.time}</span>
-                        {/* 👉 單筆專屬的撤銷按鈕 */}
                         <button 
                           onClick={() => handleUndoSpecificMatch(match.id)}
                           className="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"

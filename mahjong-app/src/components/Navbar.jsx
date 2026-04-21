@@ -1,32 +1,25 @@
 import React, { useState } from 'react';
 import { Crown, Edit2, Check, X } from 'lucide-react';
-
 export default function Navbar({ 
   currentUser, handleLogout, players, setActiveStep, handleQuickSetName, handleUpdatePlayerName 
 }) {
   const myRegistration = players?.find(p => p.uid === currentUser?.uid);
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState('');
-
   const handleSave = async () => {
     if (tempName.trim()) {
       if (myRegistration) {
-        // 已有資料，執行更新
         await handleUpdatePlayerName(tempName);
       } else {
-        // 尚未有資料，設定為訪客暱稱
         await handleQuickSetName(tempName);
       }
       setIsEditing(false);
     }
   };
-
   return (
     <nav className="sticky top-0 z-50 bg-[#0A0F1C]/90 backdrop-blur-xl border-b border-slate-800 shadow-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          
-          {/* 左側 Logo */}
           <div className="flex items-center gap-4">
             <div className="relative cursor-pointer group" onClick={() => setActiveStep('info')}>
               <div className="absolute -inset-1 bg-gradient-to-r from-orange-600 to-amber-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition-opacity"></div>
@@ -41,13 +34,9 @@ export default function Navbar({
               <p className="text-xs font-bold text-orange-500/80 tracking-widest uppercase mt-0.5">Doman Championship</p>
             </div>
           </div>
-          
-          {/* 右側：登入資訊與修改入口 */}
           {currentUser && (
             <div className="flex items-center gap-3 bg-slate-900/60 px-5 py-2 rounded-full border border-slate-800 shadow-sm">
-              
               {isEditing ? (
-                /* 🌟 編輯模式：輸入框 */
                 <div className="flex items-center gap-2">
                   <input 
                     autoFocus
@@ -62,7 +51,6 @@ export default function Navbar({
                   <button onClick={() => setIsEditing(false)} className="text-slate-500 hover:text-slate-300 p-1"><X className="w-4 h-4"/></button>
                 </div>
               ) : (
-                /* 🌟 顯示模式：點擊進入編輯 */
                 <button 
                   onClick={() => {
                     setIsEditing(true);
@@ -83,9 +71,7 @@ export default function Navbar({
                   )}
                 </button>
               )}
-              
               <div className="w-px h-4 bg-slate-700 mx-2"></div>
-              
               <button 
                 onClick={handleLogout} 
                 className="text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
