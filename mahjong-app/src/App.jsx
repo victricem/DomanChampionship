@@ -18,7 +18,7 @@ export default function App() {
     confirmModal, closeConfirm
   } = tournamentState;
   return (
-    <div className="flex flex-col min-h-screen bg-[#0A0F1C] text-slate-200 font-sans selection:bg-orange-500/30 relative">
+    <div className="flex flex-col min-h-screen w-full overflow-x-hidden bg-[#0A0F1C] text-slate-200 font-sans selection:bg-orange-500/30 relative">
       {toast.show && (
         <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-[100] animate-fade-in flex items-center shadow-2xl rounded-2xl px-6 py-3 border border-slate-700 bg-slate-900/95 backdrop-blur text-slate-100 min-w-[300px] justify-center">
           {toast.type === 'error' ? (
