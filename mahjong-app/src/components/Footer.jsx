@@ -12,7 +12,7 @@ export default function Footer() {
           <span className="w-1 h-1 bg-slate-600 rounded-full mx-1.5 opacity-60"></span>
           <span className="flex items-center">
             <span className="text-orange-500/90 mr-2 text-xs">協辦</span> 
-            <span className="text-slate-100 drop-shadow-sm">晨曦茶會、T Grove</span>
+            <span className="text-slate-100 drop-shadow-sm">晨曦茶會、T Grove、莫古力樂園</span>
           </span>
         </div>
         <div className="flex flex-col items-center gap-4 w-full">
