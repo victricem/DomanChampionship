@@ -8,27 +8,33 @@ import {
   browserLocalPersistence 
 } from 'firebase/auth';
 import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDoc, writeBatch, increment } from 'firebase/firestore';
+
 export function useTournament() {
   const [activeStep, setActiveStep] = useState('info');
   const [currentUser, setCurrentUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', action: null });
+  
   const showToast = (message, type = 'error') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   };
+  
   const requestConfirm = (title, message, action) => {
     setConfirmModal({ isOpen: true, title, message, action });
   };
+  
   const closeConfirm = () => {
     setConfirmModal({ isOpen: false, title: '', message: '', action: null });
   };
+  
   const [players, setPlayers] = useState([]);
   const [matches, setMatches] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [bracket, setBracket] = useState(null);
   const [newPlayerName, setNewPlayerName] = useState('');
+  
   useEffect(() => {
     console.log("🚀 [System] 初始化 Tournament Hook...");
 
@@ -40,6 +46,7 @@ export function useTournament() {
         }
       })
       .catch((error) => console.error("❌ [Auth] 重定向捕捉錯誤:", error.code));
+      
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
@@ -62,6 +69,7 @@ export function useTournament() {
 
     return () => unsubscribeAuth();
   }, []);
+  
   useEffect(() => {
     const unsubscribePlayers = onSnapshot(collection(db, 'players'), (snapshot) => {
       setPlayers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -79,6 +87,7 @@ export function useTournament() {
       unsubscribeGlobal();
     };
   }, []);
+  
   const isRegistered = useMemo(() => {
     const me = players.find(p => p.uid === currentUser?.uid);
     return me && me.status !== 'visitor';
@@ -93,6 +102,7 @@ export function useTournament() {
         return (b.points || 0) - (a.points || 0);
       });
   }, [players]);
+  
   const checkDuplicateName = (nameToCheck, excludeUid = null) => {
     const isExist = players.some(p => 
       p.name.toLowerCase() === nameToCheck.trim().toLowerCase() && 
@@ -103,6 +113,7 @@ export function useTournament() {
     }
     return isExist;
   };
+  
   const updateGlobalTournament = async (newData) => {
     try {
       await setDoc(doc(db, 'tournament', 'global'), newData, { merge: true });
@@ -117,6 +128,7 @@ export function useTournament() {
       return false;
     }
   };
+  
   const handleQuickSetName = async (name) => {
     if (!name.trim() || !currentUser) return;
     if (checkDuplicateName(name, currentUser.uid)) return;
@@ -127,6 +139,7 @@ export function useTournament() {
       showToast("暱稱設定成功！", "success");
     } catch (err) { showToast("設定失敗，請檢查權限！", "error"); }
   };
+  
   const handleSelfRegister = async (e, characterName) => {
     if (e) e.preventDefault();
     if (!characterName.trim() || !currentUser) return;
@@ -147,11 +160,13 @@ export function useTournament() {
       showToast("名稱修改成功！", "success");
     } catch (err) { showToast("修改失敗：權限不足！", "error"); }
   };
+  
   const handleLogout = () => signOut(auth).then(() => {
     setCurrentUser(null);
     setIsAdmin(false);
     setActiveStep('info');
   });
+  
   const handleAddPlayer = async (e) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return;
@@ -163,6 +178,7 @@ export function useTournament() {
       showToast("代報名成功！", "success");
     } catch (error) { showToast("權限不足！", "error"); }
   };
+  
   const handleApprovePlayer = async (id, adminName) => {
     try {
       await updateDoc(doc(db, 'players', String(id)), { 
@@ -172,6 +188,7 @@ export function useTournament() {
       showToast("已核准參賽資格！", "success");
     } catch (error) { showToast("核准失敗！", "error"); }
   };
+  
   const handleDeletePlayer = (id) => {
     requestConfirm('移除參賽者', '確定要移除該名使用者嗎？此動作將無法復原。', async () => {
       try {
@@ -180,12 +197,14 @@ export function useTournament() {
       } catch (error) { showToast("移除失敗！", "error"); }
     });
   };
+  
   const handleTableScoreChange = (rIdx, tIdx, pIdx, value) => {
     if (!/^-?\d*$/.test(value)) return;
     const newSchedule = JSON.parse(JSON.stringify(schedule));
     newSchedule[rIdx].tables[tIdx].scores[pIdx].points = value;
     setSchedule(newSchedule); 
   };
+  
   const handleProposeScore = async (rIdx, tIdx) => {
     const newSchedule = JSON.parse(JSON.stringify(schedule));
     const table = newSchedule[rIdx].tables[tIdx];
@@ -200,10 +219,18 @@ export function useTournament() {
     const success = await updateGlobalTournament({ schedule: newSchedule });
     if (success) showToast("已發起審核，等待同桌確認！", "success");
   };
+
   // 🌟 [防護升級] 核准/結算成績 (使用 Batch 批次處理與 Increment)
   const handleApproveScore = async (rIdx, tIdx) => {
     const newSchedule = JSON.parse(JSON.stringify(schedule));
     const table = newSchedule[rIdx].tables[tIdx];
+    
+    // 🛡️ 防呆：如果這桌已經結算過了，直接阻擋，防止連點與重複加分！
+    if (table.status === 'submitted' || table.isSubmitted) {
+      showToast("此桌已經結算完畢！", "error");
+      return;
+    }
+
     const me = players.find(p => p.uid === currentUser?.uid);
     const approverId = me ? me.id : 'admin';
 
@@ -261,6 +288,7 @@ export function useTournament() {
       if (success) showToast("您已同意，等待同桌其他人確認...", "success");
     }
   };
+
   const handleRejectScore = async (rIdx, tIdx) => {
     const newSchedule = JSON.parse(JSON.stringify(schedule));
     newSchedule[rIdx].tables[tIdx].status = 'playing';
@@ -268,6 +296,7 @@ export function useTournament() {
     const success = await updateGlobalTournament({ schedule: newSchedule });
     if (success) showToast("已退回修改狀態！", "error");
   };
+  
   const handleUndoSpecificMatch = (matchId) => {
     requestConfirm('撤銷成績', '確定要撤銷這筆積分嗎？選手的積分將會回溯，且該桌將退回編輯狀態。', async () => {
       const match = matches.find(m => m.id === matchId);
@@ -288,6 +317,7 @@ export function useTournament() {
       } catch (e) { showToast("撤銷失敗！", "error"); }
     });
   };
+  
   const handleGenerateSchedule = async () => {
     const activeOnes = players.filter(p => p.status === 'active');
     if (activeOnes.length < 4) { showToast("人數不足 4 人！", "error"); return; }
@@ -309,6 +339,7 @@ export function useTournament() {
     await updateGlobalTournament({ schedule: s, matches: [], bracket: null });
     showToast("賽程已發布！", "success");
   };
+  
   const handleGenerateBracket = (auto = false) => {
     const sorted = sortedPlayers.filter(p => p.status === 'active');
     const executeGen = async () => {
@@ -326,6 +357,7 @@ export function useTournament() {
       executeGen();
     }
   };
+  
   const handleAdvanceToFinals = async (idx, player) => {
     if (!player || !bracket) return;
     const b = JSON.parse(JSON.stringify(bracket));
@@ -333,12 +365,14 @@ export function useTournament() {
     b.finals.players[idx] = player;
     await updateGlobalTournament({ bracket: b });
   };
+  
   const handleSetChampion = async (player) => {
     if (!player || !bracket) return;
     const b = JSON.parse(JSON.stringify(bracket));
     b.finals.winner = player;
     await updateGlobalTournament({ bracket: b });
   };
+  
   const handleResetAll = async () => {
     try {
       await updateGlobalTournament({ schedule: [], matches: [], bracket: null });
@@ -347,6 +381,7 @@ export function useTournament() {
       setActiveStep('info'); 
     } catch (e) { showToast("重置失敗！", "error"); }
   };
+  
   return {
     activeStep, setActiveStep, currentUser, isAdmin, isRegistered, handleLogout, 
     handleSelfRegister, handleQuickSetName, handleUpdatePlayerName, players, sortedPlayers, 
