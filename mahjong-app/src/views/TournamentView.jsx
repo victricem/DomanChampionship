@@ -5,7 +5,7 @@ export default function TournamentView({
   sortedPlayers, matches, handleGenerateBracket, handleUndoSpecificMatch, setActiveStep, isAdmin 
 }) {
   const [isRegistrationClosed, setIsRegistrationClosed] = useState(false);
-  const REGISTRATION_DEADLINE = new Date('2026-05-29T21:00:00+08:00').getTime();
+  const REGISTRATION_DEADLINE = new Date('2026-06-01T21:00:00+08:00').getTime();
 
   useEffect(() => {
     const checkDeadline = async () => {
