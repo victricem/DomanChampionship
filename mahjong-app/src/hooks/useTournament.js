@@ -82,15 +82,37 @@ export function useTournament() {
     return me && me.status !== 'visitor';
   }, [players, currentUser]);
 
+  // 🌟 終極修正：動態掃描所有賽程表，把 3 場的成績即時加總！保證 100% 準確！
   const sortedPlayers = useMemo(() => {
+    const calculatedPoints = {};
+    players.forEach(p => { calculatedPoints[p.id] = 0; });
+
+    schedule.forEach(round => {
+      if (round.tables) {
+        round.tables.forEach(table => {
+          // 只把「已經結算」的桌次分數加進來
+          if (table.isSubmitted || table.status === 'submitted') {
+            if (table.scores) {
+              table.scores.forEach(s => {
+                if (calculatedPoints[s.playerId] !== undefined) {
+                  calculatedPoints[s.playerId] += Number(s.points) || 0;
+                }
+              });
+            }
+          }
+        });
+      }
+    });
+
     return [...players]
       .filter(p => p.status !== 'visitor') 
+      .map(p => ({ ...p, points: calculatedPoints[p.id] || 0 })) // 🚀 覆寫顯示分數為動態計算的真實總和
       .sort((a, b) => {
         if (a.status === 'pending' && b.status !== 'pending') return 1;
         if (a.status !== 'pending' && b.status === 'pending') return -1;
-        return (b.points || 0) - (a.points || 0);
+        return (b.points || 0) - (a.points || 0); // 依照總分排序
       });
-  }, [players]);
+  }, [players, schedule]);
   
   const checkDuplicateName = (nameToCheck, excludeUid = null) => {
     const isExist = players.some(p => p.name.toLowerCase() === nameToCheck.trim().toLowerCase() && p.uid !== excludeUid);
@@ -190,12 +212,11 @@ export function useTournament() {
     if (success) showToast("已發起審核，等待同桌確認！", "success");
   };
 
-  // 🌟 終極防禦：採用 Firebase Transaction (伺服器端原子交易)，徹底根絕漏算、重複計算與狀態競爭
+  // 🌟 簡化且更安全的 Transaction 結算機制：只寫入賽程與歷史紀錄
   const handleApproveScore = async (rIdx, tIdx) => {
     const me = players.find(p => p.uid === currentUser?.uid);
     const approverId = me ? me.id : 'admin';
 
-    // 1. 前端初步攔截 (防連點)
     const localTable = schedule[rIdx]?.tables[tIdx];
     if (!localTable) return;
     if (localTable.status === 'submitted' || localTable.isSubmitted) {
@@ -213,7 +234,6 @@ export function useTournament() {
 
     if (allApproved || isAdmin) {
       try {
-        // 2. 啟動伺服器端交易 (Transaction)
         await runTransaction(db, async (transaction) => {
           const globalRef = doc(db, 'tournament', 'global');
           const globalSnap = await transaction.get(globalRef);
@@ -225,29 +245,13 @@ export function useTournament() {
 
           const table = currentSchedule[rIdx].tables[tIdx];
           
-          // 伺服器端雙重檢查：確保不會被其他人搶先結算
           if (table.status === 'submitted' || table.isSubmitted) {
             throw new Error("ALREADY_SUBMITTED");
           }
 
-          // 抓取該桌 4 名玩家的最新資料
-          const playerRefs = table.players.map(p => doc(db, 'players', String(p.id)));
-          const playerSnaps = await Promise.all(playerRefs.map(ref => transaction.get(ref)));
-
-          // 正式更新這 4 人的分數
-          table.players.forEach((p, i) => {
-            const scoreObj = table.scores.find(s => s.playerId === p.id);
-            if (scoreObj && scoreObj.points !== '') {
-              const currentPoints = playerSnaps[i].exists() ? (playerSnaps[i].data().points || 0) : 0;
-              transaction.update(playerRefs[i], { points: currentPoints + Number(scoreObj.points) });
-            }
-          });
-
-          // 更新桌次狀態
           table.status = 'submitted';
           table.isSubmitted = true; 
 
-          // 建立歷史紀錄
           const matchRecord = {
             id: Date.now(),
             stage: `第 ${rIdx + 1} 局 - 第 ${tIdx + 1} 桌`,
@@ -256,7 +260,6 @@ export function useTournament() {
             details: table.players.map((p, i) => ({ player: p.name, pointsChange: Number(table.scores[i].points) }))
           };
 
-          // 一次性安全寫入
           transaction.update(globalRef, { 
             schedule: currentSchedule, 
             matches: [matchRecord, ...currentMatches] 
@@ -274,7 +277,6 @@ export function useTournament() {
         }
       }
     } else {
-      // 僅更新同意狀態
       const newSchedule = JSON.parse(JSON.stringify(schedule));
       newSchedule[rIdx].tables[tIdx].approvals = localApprovals;
       const success = await updateGlobalTournament({ schedule: newSchedule });
@@ -290,22 +292,23 @@ export function useTournament() {
     if (success) showToast("已退回修改狀態！", "error");
   };
   
+  // 🌟 因為分數變成了「動態加總」，撤銷時我們「不用再去改資料庫的個人分數」，只要把該桌退回未結算即可！
   const handleUndoSpecificMatch = (matchId) => {
-    requestConfirm('撤銷成績', '確定要撤銷這筆積分嗎？選手的積分將會回溯，且該桌將退回編輯狀態。', async () => {
+    requestConfirm('撤銷成績', '確定要撤銷這筆積分嗎？該桌將退回編輯狀態，積分將自動重新計算。', async () => {
       const match = matches.find(m => m.id === matchId);
       if (!match) return;
       try {
-        const rollbackPromises = players.map(p => {
-          const detail = match.details.find(d => d.player === p.name);
-          return detail ? updateDoc(doc(db, 'players', String(p.id)), { points: (p.points || 0) - detail.pointsChange }) : null;
-        }).filter(p => p !== null);
-        await Promise.all(rollbackPromises);
         const newSchedule = JSON.parse(JSON.stringify(schedule));
         if (match.ref && newSchedule[match.ref.rIdx]?.tables[match.ref.tIdx]) {
           const t = newSchedule[match.ref.rIdx].tables[match.ref.tIdx];
-          t.isSubmitted = false; t.status = 'playing'; t.approvals = [];
+          t.isSubmitted = false; 
+          t.status = 'playing'; 
+          t.approvals = [];
         }
-        await updateGlobalTournament({ schedule: newSchedule, matches: matches.filter(m => m.id !== matchId) });
+        await updateGlobalTournament({ 
+          schedule: newSchedule, 
+          matches: matches.filter(m => m.id !== matchId) 
+        });
         showToast("積分已回溯！", "success");
       } catch (e) { showToast("撤銷失敗！", "error"); }
     });
