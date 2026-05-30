@@ -7,7 +7,7 @@ import {
   setPersistence, 
   browserLocalPersistence 
 } from 'firebase/auth';
-import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDoc, writeBatch, increment } from 'firebase/firestore';
 export function useTournament() {
   const [activeStep, setActiveStep] = useState('info');
   const [currentUser, setCurrentUser] = useState(null);
@@ -200,26 +200,39 @@ export function useTournament() {
     const success = await updateGlobalTournament({ schedule: newSchedule });
     if (success) showToast("已發起審核，等待同桌確認！", "success");
   };
+  // 🌟 [防護升級] 核准/結算成績 (使用 Batch 批次處理與 Increment)
   const handleApproveScore = async (rIdx, tIdx) => {
     const newSchedule = JSON.parse(JSON.stringify(schedule));
     const table = newSchedule[rIdx].tables[tIdx];
     const me = players.find(p => p.uid === currentUser?.uid);
     const approverId = me ? me.id : 'admin';
+
     if (!table.approvals) table.approvals = [];
     if (!table.approvals.includes(approverId)) table.approvals.push(approverId);
+
     const allApproved = table.players.every(p => table.approvals.includes(p.id));
+
     if (allApproved || isAdmin) {
       try {
-        const updatePromises = table.players.map(p => {
+        // 啟動批次處理 (Batch)：確保所有動作同時成功或同時失敗
+        const batch = writeBatch(db);
+
+        // 1. 準備更新玩家分數
+        table.players.forEach(p => {
           const scoreObj = table.scores.find(s => s.playerId === p.id);
-          const target = players.find(player => player.id === p.id);
-          return scoreObj && target ? updateDoc(doc(db, 'players', String(p.id)), { 
-            points: (target.points || 0) + Number(scoreObj.points) 
-          }) : null;
-        }).filter(p => p !== null);
-        await Promise.all(updatePromises);
+          if (scoreObj && scoreObj.points !== '') {
+            const playerRef = doc(db, 'players', String(p.id));
+            // 🌟 使用 Firebase 原生的 increment 進行加減，避免前端重複疊加
+            batch.update(playerRef, { 
+              points: increment(Number(scoreObj.points)) 
+            });
+          }
+        });
+
+        // 2. 準備更新桌次狀態與歷史紀錄
         table.status = 'submitted';
         table.isSubmitted = true; 
+
         const matchRecord = {
           id: Date.now(),
           stage: `初賽 (第 ${rIdx + 1} 局 - 第 ${tIdx + 1} 桌)`,
@@ -227,10 +240,23 @@ export function useTournament() {
           time: new Date().toLocaleTimeString(),
           details: table.players.map((p, i) => ({ player: p.name, pointsChange: Number(table.scores[i].points) }))
         };
-        const success = await updateGlobalTournament({ schedule: newSchedule, matches: [matchRecord, ...matches] });
-        if (success) showToast(isAdmin ? "管理員已強制結算！" : "全員確認完畢，成績已送出！", "success");
-      } catch (err) { showToast("結算資料庫失敗，請確認網路！", "error"); }
+
+        const globalRef = doc(db, 'tournament', 'global');
+        batch.update(globalRef, { 
+          schedule: newSchedule, 
+          matches: [matchRecord, ...matches] 
+        });
+
+        // 3. 一口氣執行所有操作！
+        await batch.commit();
+        showToast(isAdmin ? "管理員已強制結算！" : "全員確認完畢，成績已送出！", "success");
+
+      } catch (err) { 
+        console.error("Firebase Batch Error:", err);
+        showToast("結算資料庫失敗，請確認網路或權限！", "error"); 
+      }
     } else {
+      // 若還沒全員同意，就只更新桌子的同意名單
       const success = await updateGlobalTournament({ schedule: newSchedule });
       if (success) showToast("您已同意，等待同桌其他人確認...", "success");
     }
