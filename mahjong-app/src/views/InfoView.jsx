@@ -1,29 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Crown, Swords, Shuffle, Trophy, AlertCircle, ChevronRight, Loader2, Calendar, Clock, Zap, Target, Gift, Coins, Timer } from 'lucide-react';
+import React, { useState } from 'react';
+import { Crown, Swords, Shuffle, Trophy, ChevronRight, Loader2, Calendar, Clock, Zap, Target, Gift, Coins, Timer } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import mainBanner from '../assets/benner.webp';
+
 export default function InfoView({ setActiveStep, currentUser }) {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isRegistrationClosed, setIsRegistrationClosed] = useState(false);
-  const REGISTRATION_DEADLINE = new Date('2026-05-29T21:00:00+08:00').getTime();
-  useEffect(() => {
-    const checkDeadline = () => {
-      const now = new Date().getTime();
-      if (now >= REGISTRATION_DEADLINE) {
-        setIsRegistrationClosed(true);
-      }
-    };
-    checkDeadline();
-    const timer = setInterval(checkDeadline, 60000);
-    return () => clearInterval(timer);
-  }, []);
+
   const handleAction = async () => {
+    // 若早有登入狀態，直接切換分頁
     if (currentUser) {
       setActiveStep('register');
       return;
     }
-    if (isRegistrationClosed) return;
 
     setIsLoggingIn(true);
     try {
@@ -42,6 +31,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
       setIsLoggingIn(false);
     }
   };
+
   return (
     <div className="w-full max-w-6xl mx-auto space-y-12 animate-fade-in pb-20">
       <div className="relative overflow-hidden rounded-[3rem] bg-slate-900 shadow-2xl border border-slate-800 flex flex-col">
@@ -56,6 +46,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
         </div>
         <div className="absolute top-2/3 -left-32 w-96 h-96 bg-orange-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-pulse pointer-events-none"></div>
         <div className="absolute bottom-0 -right-32 w-96 h-96 bg-amber-500 rounded-full mix-blend-screen filter blur-[100px] opacity-10 pointer-events-none"></div>
+        
         <div className="relative z-10 px-6 pb-12 md:pb-16 flex flex-col items-center text-center -mt-16 md:-mt-24">
           <div className="relative mb-6">
             <div className="absolute -inset-4 bg-orange-500/20 blur-2xl rounded-full"></div>
@@ -75,6 +66,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
               報名期限：即日起 至 5/29 (五) 21:00 止
             </span>
           </div>
+          
           <div className="flex flex-col md:flex-row items-stretch gap-4 w-full max-w-3xl mb-2">
             <div className="flex-1 bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5 flex items-center gap-5">
               <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0 border border-orange-500/30">
@@ -97,6 +89,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
           </div>
         </div>
       </div>
+
       <div className="space-y-6">
         <div className="flex items-center justify-center gap-3">
           <div className="h-px w-12 bg-gradient-to-r from-transparent to-orange-500/50"></div>
@@ -140,6 +133,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
           </div>
         </div>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="group bg-slate-900 rounded-3xl p-8 shadow-xl border-t-4 border-orange-500 border-x border-b border-slate-800 hover:-translate-y-2 transition-all duration-300">
           <div className="flex justify-between items-start mb-6">
@@ -171,7 +165,6 @@ export default function InfoView({ setActiveStep, currentUser }) {
             複賽改為 <strong className="text-slate-100">半莊戰(帶食斷)</strong>。4 桌分組廝殺，僅有 <strong className="text-amber-400 text-lg">該桌第 1 名</strong> 能獲得決賽門票。
           </p>
         </div>
-
         <div className="group bg-slate-900 rounded-3xl p-8 shadow-xl border-t-4 border-yellow-400 border-x border-b border-slate-800 hover:-translate-y-2 transition-all duration-300 delay-150">
           <div className="flex justify-between items-start mb-6">
             <div className="w-14 h-14 bg-yellow-400/20 rounded-2xl flex items-center justify-center border border-yellow-400/30 group-hover:scale-110 transition-transform">
@@ -188,6 +181,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
           </p>
         </div>
       </div>
+
       <div className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden border border-slate-800">
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
           <div className="w-24 h-24 shrink-0 bg-slate-800 rounded-3xl flex items-center justify-center border-2 border-slate-700 shadow-2xl transform -rotate-3">
@@ -207,6 +201,7 @@ export default function InfoView({ setActiveStep, currentUser }) {
           </div>
         </div>
       </div>
+
       <div className="grid md:grid-cols-2 gap-8">
         <div className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-3xl p-8 border border-slate-800 flex gap-6 shadow-xl">
           <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center shrink-0 border border-orange-500/20">
@@ -231,44 +226,33 @@ export default function InfoView({ setActiveStep, currentUser }) {
           </div>
         </div>
       </div>
+
       <div className="pt-6 pb-10 text-center relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-orange-500/10 blur-[80px] -z-10"></div>
         
         <button 
           onClick={handleAction} 
-          disabled={isLoggingIn || (isRegistrationClosed && !currentUser)}
+          disabled={isLoggingIn}
           className={`group relative inline-flex items-center justify-center px-16 py-7 text-2xl md:text-3xl font-black text-white transition-all duration-300 ease-in-out rounded-full transform 
-            ${(isRegistrationClosed && !currentUser) 
-              ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed scale-95' 
-              : 'bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-[length:200%_auto] hover:bg-right hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] hover:-translate-y-2'
-            } ${isLoggingIn ? 'opacity-80 scale-95 cursor-wait' : ''}`}
+            bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600 bg-[length:200%_auto] hover:bg-right hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] hover:-translate-y-2
+            ${isLoggingIn ? 'opacity-80 scale-95 cursor-wait' : ''}`}
         >
-          {(!isLoggingIn && !isRegistrationClosed) && <span className="absolute inset-0 w-full h-full rounded-full ring-4 ring-orange-500/30 group-hover:ring-orange-400/50 animate-ping opacity-20"></span>}
+          {!isLoggingIn && <span className="absolute inset-0 w-full h-full rounded-full ring-4 ring-orange-500/30 group-hover:ring-orange-400/50 animate-ping opacity-20"></span>}
           <span className="tracking-[0.1em] drop-shadow-md">
-            {currentUser 
-              ? '進入報名系統' 
-              : (isRegistrationClosed 
-                  ? '報名已截止' 
-                  : (isLoggingIn ? '驗證中...' : '立即登入報名')
-                )
-            }
+            {currentUser ? '進入報名系統' : (isLoggingIn ? '驗證中...' : '立即登入報名')}
           </span>
           
           {isLoggingIn ? (
             <Loader2 className="w-8 h-8 md:w-10 md:h-10 ml-4 animate-spin text-yellow-100" />
           ) : (
-            !isRegistrationClosed && <ChevronRight className="w-8 h-8 md:w-10 md:h-10 ml-2 group-hover:translate-x-3 transition-transform duration-300" />
+            <ChevronRight className="w-8 h-8 md:w-10 md:h-10 ml-2 group-hover:translate-x-3 transition-transform duration-300" />
           )}
         </button>
-        {isRegistrationClosed && !currentUser && (
-          <p className="text-red-400/80 text-sm mt-6 font-bold tracking-widest flex items-center justify-center gap-2">
-            <AlertCircle className="w-4 h-4" /> 很抱歉，本屆賽事報名時間已結束。
-          </p>
-        )}
       </div>
     </div>
   );
 }
+
 function MedalIcon({ className }) {
   return (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
