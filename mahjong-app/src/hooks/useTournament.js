@@ -351,18 +351,37 @@ export function useTournament() {
     else executeGen();
   };
   
+  // 🌟 修改：晉級 4 強時，再點一次可取消晉級
   const handleAdvanceToFinals = async (idx, player) => {
     if (!player || !bracket) return;
     const b = JSON.parse(JSON.stringify(bracket));
-    b.semifinals[idx].winner = player;
-    b.finals.players[idx] = player;
+    
+    // 如果點擊的人「已經是」該桌的晉級者，就取消他
+    if (b.semifinals[idx].winner && b.semifinals[idx].winner.id === player.id) {
+      b.semifinals[idx].winner = null;
+      b.finals.players[idx] = null;
+      // 如果他已經被選為冠軍了，連帶把冠軍也取消掉
+      if (b.finals.winner && b.finals.winner.id === player.id) {
+        b.finals.winner = null;
+      }
+    } else {
+      b.semifinals[idx].winner = player;
+      b.finals.players[idx] = player;
+    }
     await updateGlobalTournament({ bracket: b });
   };
   
+  // 🌟 修改：設定冠軍時，再點一次可取消冠軍
   const handleSetChampion = async (player) => {
     if (!player || !bracket) return;
     const b = JSON.parse(JSON.stringify(bracket));
-    b.finals.winner = player;
+    
+    // 如果點擊的人「已經是」冠軍，就取消他
+    if (b.finals.winner && b.finals.winner.id === player.id) {
+      b.finals.winner = null;
+    } else {
+      b.finals.winner = player;
+    }
     await updateGlobalTournament({ bracket: b });
   };
   
